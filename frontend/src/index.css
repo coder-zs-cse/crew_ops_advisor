@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-ink-950 text-mute-200 font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+  }
+  ::selection {
+    @apply bg-signal/25 text-white;
+  }
+  *:focus-visible {
+    @apply outline-none ring-2 ring-signal/60 ring-offset-1 ring-offset-ink-950;
+  }
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ink-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-600;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-ink-900 border border-ink-700/70 rounded-xl;
+  }
+  .panel-hd {
+    @apply px-4 py-3 border-b border-ink-700/70 flex items-center justify-between gap-3;
+  }
+  .label {
+    @apply text-2xs uppercase tracking-[0.14em] text-mute-400 font-semibold;
+  }
+  .num {
+    @apply font-mono tabular-nums;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-medium border;
+  }
+  .chip-legal {
+    @apply chip bg-legal/10 border-legal/30 text-legal;
+  }
+  .chip-breach {
+    @apply chip bg-breach/10 border-breach/30 text-breach;
+  }
+  .chip-caution {
+    @apply chip bg-caution/10 border-caution/30 text-caution;
+  }
+  .chip-advisory {
+    @apply chip bg-advisory/10 border-advisory/30 text-advisory;
+  }
+  .chip-neutral {
+    @apply chip bg-ink-800 border-ink-600 text-mute-300;
+  }
+  .chip-signal {
+    @apply chip bg-signal/10 border-signal/30 text-signal;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+           transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-signal/15 text-signal border border-signal/40 hover:bg-signal/25;
+  }
+  .btn-ghost {
+    @apply btn bg-ink-800 text-mute-300 border border-ink-600 hover:bg-ink-750 hover:text-mute-200;
+  }
+  .btn-danger {
+    @apply btn bg-breach/10 text-breach border border-breach/30 hover:bg-breach/20;
+  }
+
+  .input {
+    @apply bg-ink-850 border border-ink-600 rounded-lg px-3 py-2 text-sm text-mute-200
+           placeholder:text-mute-400/60 focus:border-signal/50;
+  }
+
+  .cell {
+    @apply px-3 py-2 text-xs;
+  }
+  .th {
+    @apply cell label text-left sticky top-0 bg-ink-850 z-10 border-b border-ink-700;
+  }
+  .tr {
+    @apply border-b border-ink-800/70 hover:bg-ink-850/60 transition-colors;
+  }
+
+  /* Wide content scrolls inside its own container; the page never does. */
+  .xscroll {
+    @apply overflow-x-auto;
+  }
+}
+
+.trace-line {
+  @apply font-mono text-2xs leading-relaxed;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #111827 25%, #1e293b 50%, #111827 75%);
+  background-size: 200% 100%;
+  @apply animate-shimmer rounded;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

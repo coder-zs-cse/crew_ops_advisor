@@ -1,0 +1,22 @@
+# Optional. The app runs on SQLite with no infrastructure at all; Postgres is
+# here for teams who want the trace store to survive a restart and to query the
+# audit trail with SQL.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: crewops
+      POSTGRES_PASSWORD: crewops
+      POSTGRES_DB: crewops
+    ports:
+      - "5432:5432"
+    volumes:
+      - crewops_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crewops"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  crewops_pgdata:

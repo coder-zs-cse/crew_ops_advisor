@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Generated per-seed snapshots (rebuilt on startup when empty)
+backend/data/data-seed-*/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Env & editors
+.env
+.env.local
+.DS_Store
+.idea/
+.vscode/
+
+# Local tooling
+shoot.mjs
+shots/
+tsconfig.tsbuildinfo
