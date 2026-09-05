@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import clsx from 'clsx'
 import { Plane, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { api, utcTime } from '../lib/api'
+import { CATEGORICAL } from '../lib/viz'
 import { FlightProfileBody } from './EntityProfiles'
 import { Modal } from './Modal'
 import { EmptyState, ErrorBox, Skeleton } from './ui'
@@ -49,11 +51,17 @@ export function FlightBoard() {
       arrs.add(f.arr_station)
     }
     const sort = (a: string, b: string) => a.localeCompare(b)
+    const aircraft = [...tails].sort(sort)
+    const from = [...deps].sort(sort)
+    const to = [...arrs].sort(sort)
+    const stations = [...new Set([...from, ...to])].sort(sort)
     return {
       dates: [...dates].sort(),
-      aircraft: [...tails].sort(sort),
-      from: [...deps].sort(sort),
-      to: [...arrs].sort(sort),
+      aircraft,
+      from,
+      to,
+      aircraftColor: assignColors(aircraft),
+      stationColor: assignColors(stations),
     }
   }, [rows])
 
@@ -118,39 +126,75 @@ export function FlightBoard() {
           body="Clear the search or reset a filter. The list is the published week, not a forecast."
         />
       ) : (
-        <div className="xscroll max-h-[calc(100vh-22rem)] overflow-y-auto rounded-lg border border-ink-800">
+        <div className="xscroll max-h-[calc(100vh-22rem)] overflow-y-auto rounded-lg border border-ink-700/80">
           <table className="w-full min-w-[640px] border-collapse">
             <thead>
               <tr>
-                <th className="th w-24">Date</th>
-                <th className="th w-20">Flight</th>
-                <th className="th">Route</th>
-                <th className="th w-16">Dep</th>
-                <th className="th w-16">Arr</th>
-                <th className="th w-20">Aircraft</th>
-                <th className="th w-20">Pairing</th>
-                <th className="th w-14 text-right">Seats</th>
+                <th className="th w-20 bg-ink-800">Date</th>
+                <th className="th w-20 bg-ink-800">Flight</th>
+                <th className="th bg-ink-800">Route</th>
+                <th className="th w-16 bg-ink-800">Dep</th>
+                <th className="th w-16 bg-ink-800">Arr</th>
+                <th className="th w-24 bg-ink-800">Aircraft</th>
+                <th className="th w-24 bg-ink-800">Pairing</th>
+                <th className="th w-14 text-right bg-ink-800">Seats</th>
               </tr>
             </thead>
             <tbody>
-              {visible.map((f) => (
-                <tr
-                  key={f.flight_id}
-                  className="tr cursor-pointer"
-                  onClick={() => setSelected(f)}
-                >
-                  <td className="cell num text-mute-300">{f.date.slice(5)}</td>
-                  <td className="cell num text-mute-200">{f.flight_no}</td>
-                  <td className="cell num text-mute-300">
-                    {f.dep_station}–{f.arr_station}
-                  </td>
-                  <td className="cell num text-mute-400">{utcTime(f.dep_utc)}</td>
-                  <td className="cell num text-mute-400">{utcTime(f.arr_utc)}</td>
-                  <td className="cell num text-mute-300">{f.aircraft}</td>
-                  <td className="cell num text-mute-400">{f.pairing_id ?? '—'}</td>
-                  <td className="cell num text-right text-mute-400">{f.seats}</td>
-                </tr>
-              ))}
+              {visible.map((f, i) => {
+                const tail = options.aircraftColor.get(f.aircraft) ?? CATEGORICAL[0]
+                const dep = options.stationColor.get(f.dep_station) ?? CATEGORICAL[2]
+                const arr = options.stationColor.get(f.arr_station) ?? CATEGORICAL[5]
+                const active = selected?.flight_id === f.flight_id
+                return (
+                  <tr
+                    key={f.flight_id}
+                    className={clsx(
+                      'cursor-pointer border-b border-ink-800/70 transition-colors',
+                      i % 2 === 0 ? 'bg-ink-900' : 'bg-ink-850/55',
+                      active ? 'bg-signal/10' : 'hover:bg-ink-750/80',
+                    )}
+                    onClick={() => setSelected(f)}
+                  >
+                    <td
+                      className="cell num text-mute-300"
+                      style={{ boxShadow: `inset 3px 0 0 ${tail}` }}
+                    >
+                      {f.date.slice(5)}
+                    </td>
+                    <td className="cell num font-semibold text-signal">{f.flight_no}</td>
+                    <td className="cell">
+                      <span className="inline-flex items-center gap-1">
+                        <StationChip code={f.dep_station} color={dep} />
+                        <span className="text-mute-400 text-2xs">→</span>
+                        <StationChip code={f.arr_station} color={arr} />
+                      </span>
+                    </td>
+                    <td className="cell num text-mute-200">{utcTime(f.dep_utc)}</td>
+                    <td className="cell num text-mute-200">{utcTime(f.arr_utc)}</td>
+                    <td className="cell">
+                      <span
+                        className="chip text-2xs"
+                        style={{
+                          color: tail,
+                          borderColor: `${tail}55`,
+                          background: `${tail}18`,
+                        }}
+                      >
+                        {f.aircraft}
+                      </span>
+                    </td>
+                    <td className="cell">
+                      {f.pairing_id ? (
+                        <span className="chip-advisory">{f.pairing_id}</span>
+                      ) : (
+                        <span className="text-mute-400">—</span>
+                      )}
+                    </td>
+                    <td className="cell num text-right text-mute-200">{f.seats}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -200,5 +244,20 @@ function FilterSelect({
         ))}
       </select>
     </label>
+  )
+}
+
+function assignColors(keys: string[]): Map<string, string> {
+  return new Map(keys.map((key, i) => [key, CATEGORICAL[i % CATEGORICAL.length]]))
+}
+
+function StationChip({ code, color }: { code: string; color: string }) {
+  return (
+    <span
+      className="chip text-2xs"
+      style={{ color, borderColor: `${color}55`, background: `${color}18` }}
+    >
+      {code}
+    </span>
   )
 }
