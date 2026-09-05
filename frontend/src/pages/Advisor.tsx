@@ -1,11 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { CornerDownLeft, Sparkles, Terminal } from 'lucide-react'
+import { CornerDownLeft, PanelLeftClose, PanelLeftOpen, Plus, Sparkles, Terminal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AnswerCard } from '../components/AnswerCard'
 import { EmptyState, ErrorBox, Panel, Spinner, Toggle } from '../components/ui'
 import { api, type ChatAnswer } from '../lib/api'
 import { SPAN_COLORS } from '../lib/viz'
+import type { Turn } from '../App'
 
 const SUGGESTIONS: { tier: number; text: string }[] = [
   { tier: 1, text: 'Who is on reserve at BLR on 2026-09-15, and what are their on-call windows?' },
@@ -19,23 +20,43 @@ const SUGGESTIONS: { tier: number; text: string }[] = [
   { tier: 3, text: 'Draft the callout notification to C-3310 for covering P-2291.' },
 ]
 
-interface Turn {
-  question: string
-  answer?: ChatAnswer
-  error?: unknown
-  pending?: boolean
+const CANNOT = [
+  'Passenger rebooking or compensation — no booking data exists',
+  'Hotel allocation and crew payroll',
+  'Predicting who will call in sick — the risk score is a provided input',
+  'Regulations beyond the seven rules in the ruleset',
+  'Anything outside the 14–20 September schedule window',
+]
+
+function clsx(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ')
 }
 
-export default function AdvisorPage() {
+interface Props {
+  turns: Turn[]
+  setTurns: React.Dispatch<React.SetStateAction<Turn[]>>
+  conversationId: string | undefined
+  setConversationId: React.Dispatch<React.SetStateAction<string | undefined>>
+}
+
+export default function AdvisorPage({ turns, setTurns, conversationId, setConversationId }: Props) {
   const location = useLocation() as { state?: { question?: string } }
   const [input, setInput] = useState('')
-  const [turns, setTurns] = useState<Turn[]>([])
-  const [conversationId, setConversationId] = useState<string | undefined>()
   const [tier, setTier] = useState('all')
+  const [loadingConvId, setLoadingConvId] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(true)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const capabilities = useQuery({ queryKey: ['capabilities'], queryFn: api.capabilities })
+
+  // History list — always visible in sidebar, refreshes every 15s
+  const conversations = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => api.conversations(25),
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+  })
 
   const ask = useMutation({
     mutationFn: (question: string) => api.chat(question, conversationId),
@@ -44,10 +65,14 @@ export default function AdvisorPage() {
     },
     onSuccess: (answer) => {
       setConversationId(answer.conversation_id)
-      setTurns((t) => t.map((turn, i) => (i === t.length - 1 ? { ...turn, answer, pending: false } : turn)))
+      setTurns((t) =>
+        t.map((turn, i) => (i === t.length - 1 ? { ...turn, answer, pending: false } : turn))
+      )
     },
     onError: (error) => {
-      setTurns((t) => t.map((turn, i) => (i === t.length - 1 ? { ...turn, error, pending: false } : turn)))
+      setTurns((t) =>
+        t.map((turn, i) => (i === t.length - 1 ? { ...turn, error, pending: false } : turn))
+      )
     },
   })
 
@@ -58,7 +83,58 @@ export default function AdvisorPage() {
     ask.mutate(q)
   }
 
-  // An alert can hand a question straight to the advisor.
+  // Start a brand-new conversation
+  const newConversation = () => {
+    setTurns([])
+    setConversationId(undefined)
+  }
+
+  // Load a past conversation from the backend
+  const loadConversation = async (id: string) => {
+    if (id === conversationId) return
+    setLoadingConvId(id)
+    try {
+      const data = await api.conversation(id)
+      const rebuilt: Turn[] = []
+      const msgs = data.messages
+      for (let i = 0; i < msgs.length; i++) {
+        if (msgs[i].role === 'user') {
+          const next = msgs[i + 1]
+          const hasAssistant = next?.role === 'assistant'
+          rebuilt.push({
+            question: msgs[i].content,
+            answer: hasAssistant
+              ? {
+                  run_id: next.run_id ?? '',
+                  conversation_id: id,
+                  question: msgs[i].content,
+                  answer: next.content,
+                  structured: next.structured ?? null,
+                  intent: null,
+                  entities: {},
+                  tier: null,
+                  citations: [],
+                  verification: null,
+                  abstained: false,
+                  plan: [],
+                  plan_source: 'history',
+                  tool_calls: [],
+                  latency_ms: null,
+                  trace_summary: {},
+                }
+              : undefined,
+          })
+          if (hasAssistant) i++ // skip the assistant message we just consumed
+        }
+      }
+      setTurns(rebuilt)
+      setConversationId(id)
+    } finally {
+      setLoadingConvId(null)
+    }
+  }
+
+  // Alert can hand a question straight to the advisor
   useEffect(() => {
     const seeded = location.state?.question
     if (seeded) submit(seeded)
@@ -86,7 +162,95 @@ export default function AdvisorPage() {
   )
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] grid lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className={clsx(
+      'h-[calc(100vh-3.5rem)] grid',
+      historyOpen
+        ? 'lg:grid-cols-[200px_minmax(0,1fr)_320px]'
+        : 'lg:grid-cols-[32px_minmax(0,1fr)_320px]'
+    )}>
+
+      {/* ---- History sidebar ---- */}
+      <aside className="border-r border-ink-700/70 flex-col min-h-0 hidden lg:flex overflow-hidden">
+
+        {/* Header row — toggle button always visible */}
+        <div className="shrink-0 p-2 border-b border-ink-700/70 flex items-center justify-between gap-1">
+          <button
+            onClick={() => setHistoryOpen((o) => !o)}
+            className="flex items-center justify-center w-6 h-6 rounded text-mute-400 hover:text-signal hover:bg-ink-800 transition-colors shrink-0"
+            title={historyOpen ? 'Collapse history' : 'Expand history'}
+          >
+            {historyOpen
+              ? <PanelLeftClose size={13} aria-hidden />
+              : <PanelLeftOpen size={13} aria-hidden />
+            }
+          </button>
+
+          {historyOpen && (
+            <>
+              <span className="text-2xs font-medium text-mute-300 uppercase tracking-wide flex-1 truncate">
+                History
+              </span>
+              <button
+                onClick={newConversation}
+                className="flex items-center gap-1 text-2xs text-mute-400 hover:text-signal px-1.5 py-1 rounded hover:bg-ink-800 transition-colors shrink-0"
+                title="New conversation"
+              >
+                <Plus size={11} /> New
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Conversation list — only rendered when open */}
+        {historyOpen && (
+          <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+            {/* Active unsaved conversation — shows before backend persists it */}
+            {turns.length > 0 && !conversations.data?.conversations.find((c) => c.id === conversationId) && (
+              <div className="px-2 py-1.5 rounded-lg bg-signal/10 border border-signal/20">
+                <p className="text-2xs text-signal truncate font-medium">
+                  {turns[0]?.question ?? 'Current chat'}
+                </p>
+                <p className="text-2xs text-mute-400 mt-0.5">
+                  {turns.length} turn{turns.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            )}
+
+            {conversations.isLoading && (
+              <p className="text-2xs text-mute-400 px-2 py-2">Loading…</p>
+            )}
+
+            {conversations.data?.conversations.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => loadConversation(c.id)}
+                disabled={loadingConvId === c.id}
+                className={clsx(
+                  'w-full text-left px-2 py-1.5 rounded-lg transition-colors group',
+                  c.id === conversationId
+                    ? 'bg-signal/10 border border-signal/20'
+                    : 'hover:bg-ink-800',
+                )}
+              >
+                <p className={clsx(
+                  'text-2xs truncate',
+                  c.id === conversationId ? 'text-signal' : 'text-mute-200 group-hover:text-mute-100',
+                )}>
+                  {loadingConvId === c.id ? 'Loading…' : c.title}
+                </p>
+                <p className="text-2xs text-mute-500 mt-0.5">
+                  {c.message_count} msg · {new Date(c.created_at).toLocaleDateString()}
+                </p>
+              </button>
+            ))}
+
+            {conversations.data?.conversations.length === 0 && (
+              <p className="text-2xs text-mute-500 px-2 py-2">No past conversations</p>
+            )}
+          </div>
+        )}
+      </aside>
+
       {/* ---- Conversation ---- */}
       <div className="flex flex-col min-h-0">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -112,7 +276,9 @@ export default function AdvisorPage() {
               )}
               {turn.error ? <ErrorBox error={turn.error} /> : null}
               {turn.answer && <AnswerCard answer={turn.answer} />}
-              {turn.answer && <TracePreview answer={turn.answer} />}
+              {turn.answer && turn.answer.plan_source !== 'history' && (
+                <TracePreview answer={turn.answer} />
+              )}
             </div>
           ))}
           <div ref={endRef} />
@@ -134,7 +300,11 @@ export default function AdvisorPage() {
               placeholder="A captain just called in sick — what should I do?   (⌘J to focus, Enter to send)"
               className="input flex-1 resize-none"
             />
-            <button className="btn-primary h-9" onClick={() => submit(input)} disabled={ask.isPending}>
+            <button
+              className="btn-primary h-9"
+              onClick={() => submit(input)}
+              disabled={ask.isPending}
+            >
               <CornerDownLeft size={13} /> Ask
             </button>
           </div>
@@ -191,15 +361,7 @@ export default function AdvisorPage() {
   )
 }
 
-const CANNOT = [
-  'Passenger rebooking or compensation — no booking data exists',
-  'Hotel allocation and crew payroll',
-  'Predicting who will call in sick — the risk score is a provided input',
-  'Regulations beyond the seven rules in the ruleset',
-  'Anything outside the 14–20 September schedule window',
-]
-
-/** A compact view of what the run actually did, inline under the answer. */
+/** Compact view of what the run actually did, inline under the answer. */
 function TracePreview({ answer }: { answer: ChatAnswer }) {
   const [open, setOpen] = useState(false)
   return (

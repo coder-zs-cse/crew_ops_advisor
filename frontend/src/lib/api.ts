@@ -331,6 +331,17 @@ export const api = {
   chat: (question: string, conversationId?: string) =>
     post<ChatAnswer>('/api/chat', { question, conversation_id: conversationId }),
 
+  conversations: (limit = 25) =>
+    get<{ count: number; conversations: { id: string; title: string; created_at: string; message_count: number }[] }>(
+      `/api/conversations${qs({ limit })}`
+    ),
+  conversation: (id: string) =>
+    get<{
+      id: string
+      title: string
+      messages: { role: string; content: string; structured: any; run_id: string; created_at: string }[]
+    }>(`/api/conversations/${id}`),
+
   // world
   gantt: (start?: string) => get<{ dates: string[]; rows: GanttRow[] }>(`/api/gantt${qs({ start })}`),
   crew: (params: { rank?: string; base?: string; rating?: string; status?: string } = {}) =>
