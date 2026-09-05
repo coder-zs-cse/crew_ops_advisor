@@ -12,7 +12,8 @@ import {
 } from 'lucide-react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api } from './lib/api'
+import { useState } from 'react'
+import { api, type ChatAnswer } from './lib/api'
 import { ClockControl } from './components/ClockControl'
 import AdvisorPage from './pages/Advisor'
 import BriefingPage from './pages/Briefing'
@@ -36,12 +37,24 @@ const NAV = [
   { to: '/rules', label: 'Rules', icon: BookOpen },
 ]
 
+// Exported so Advisor.tsx can type its props correctly
+export interface Turn {
+  question: string
+  answer?: ChatAnswer
+  error?: unknown
+  pending?: boolean
+}
+
 export default function App() {
   const { data: health } = useQuery({
     queryKey: ['health'],
     queryFn: api.health,
     refetchInterval: 30_000,
   })
+
+  // Advisor state lives here — survives tab switches because App never unmounts
+  const [advisorTurns, setAdvisorTurns] = useState<Turn[]>([])
+  const [advisorConversationId, setAdvisorConversationId] = useState<string | undefined>()
 
   const llmLive = health?.llm?.available
   const engine = health?.scheduler?.running
@@ -106,7 +119,17 @@ export default function App() {
       <main className="flex-1 min-h-0">
         <Routes>
           <Route path="/" element={<ConsolePage />} />
-          <Route path="/advisor" element={<AdvisorPage />} />
+          <Route
+            path="/advisor"
+            element={
+              <AdvisorPage
+                turns={advisorTurns}
+                setTurns={setAdvisorTurns}
+                conversationId={advisorConversationId}
+                setConversationId={setAdvisorConversationId}
+              />
+            }
+          />
           <Route path="/workbench" element={<WorkbenchPage />} />
           <Route path="/briefing" element={<BriefingPage />} />
           <Route path="/crew" element={<CrewDirectoryPage />} />
