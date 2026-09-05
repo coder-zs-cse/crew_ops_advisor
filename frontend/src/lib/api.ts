@@ -1,10 +1,9 @@
 /**
  * Backend client.
  *
- * Two kinds of call live here and the distinction matters: `chat` goes through
- * the agent, everything else hits a deterministic endpoint directly. The
- * console uses the deterministic ones wherever the user is looking something
- * up rather than asking a question — no model in the path at all.
+ * `chat` goes through the agent and requires an LLM API key. Everything else
+ * hits the rules engine directly — the console uses those lookups rather than
+ * asking a question.
  */
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''

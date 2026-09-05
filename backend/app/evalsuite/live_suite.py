@@ -243,7 +243,7 @@ def run_suite(
         return {
             "suite": "live",
             "available": False,
-            "error": "Configure an API key to run the live-agent evaluation.",
+            "error": "Please enter your LLM API key",
             "total": 0,
             "passed": 0,
             "failed": 0,

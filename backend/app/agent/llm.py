@@ -2,18 +2,13 @@
 
 The model does exactly two jobs in this system: classify a question, and write
 prose about a result that code already computed. Both are wrapped here so the
-rest of the agent never touches the SDK, every call is traced with its tokens
-and cost, and the whole thing degrades to deterministic behaviour when no
-credentials are present.
-
-That last property is not a nicety. The pattern router and the template
-narrator answer every graded question correctly with no model at all, so a
-venue with no network still demos, and the conformance suite never depends on
-an API being up.
+rest of the agent never touches the SDK, and every call is traced with its
+tokens and cost.
 
 Provider is selected with ``CREWOPS_LLM_PROVIDER`` (``openai``, ``anthropic``,
 or ``auto``). ``auto`` uses whichever key is present; if both are set it
-prefers Anthropic. Leave both keys empty to stay on the deterministic path.
+prefers Anthropic. An API key is required — without one the client stays
+unavailable and the console asks for a key.
 """
 
 from __future__ import annotations
@@ -175,10 +170,9 @@ class LLMClient:
         """Disable the client permanently on an unrecoverable failure.
 
         Credentials are resolved lazily by the SDK, so a missing key only shows
-        up on the first call. Retrying it on every request would add seconds of
-        backoff to answers that the deterministic path can serve in
-        milliseconds, so the first auth or config failure switches the model off
-        for the process and is surfaced in ``status``.
+        up on the first call. Retrying a bad key on every request would add
+        seconds of backoff, so the first auth or config failure switches the
+        model off for the process and is surfaced in ``status``.
         """
         message = str(exc)
         terminal = isinstance(exc, TypeError) or any(
@@ -204,10 +198,7 @@ class LLMClient:
             "provider": self.provider,
             "model": self.model,
             "error": self._error,
-            "note": (
-                "Pattern routing and template narration cover every graded question "
-                "without a model; the LLM improves phrasing and handles novel queries."
-            ),
+            "note": None if self.available else "Please enter your LLM API key",
         }
 
     # ------------------------------------------------------------------
@@ -253,7 +244,7 @@ class LLMClient:
             except Exception as exc:  # noqa: BLE001
                 span.status = "error"
                 span.error = f"{type(exc).__name__}: {exc}"
-                span.attrs["fell_back_to_deterministic"] = True
+                span.attrs["llm_call_failed"] = True
                 self._note_failure(exc)
                 span.attrs["llm_disabled"] = self._disabled
                 return None
