@@ -25,3 +25,5 @@ dist/
 shoot.mjs
 shots/
 tsconfig.tsbuildinfo
+
+backend/crewops.db

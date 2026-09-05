@@ -39,6 +39,13 @@ def _history(session: Session, conversation_id: str | None, limit: int = 8) -> l
     return [{"role": m.role, "content": m.content} for m in reversed(rows)]
 
 
+def _require_llm() -> None:
+    from ...agent.llm import get_client
+
+    if not get_client().available:
+        raise HTTPException(503, "Please enter your LLM API key")
+
+
 def _persist(session: Session, conversation_id: str, question: str, payload: dict) -> None:
     if session.get(Conversation, conversation_id) is None:
         session.add(Conversation(id=conversation_id, title=question[:200]))
@@ -57,6 +64,7 @@ def _persist(session: Session, conversation_id: str, question: str, payload: dic
 
 @router.post("/chat")
 def chat(body: ChatRequest, session: Session = Depends(get_db)) -> dict:
+    _require_llm()
     advisor = get_advisor()
     conversation_id = body.conversation_id or f"conv_{uuid.uuid4().hex[:10]}"
 
@@ -85,6 +93,7 @@ async def chat_stream(body: ChatRequest, request: Request) -> EventSourceRespons
     watches 24 candidates get evaluated and rejected in real time, which is
     what makes the answer credible when it lands.
     """
+    _require_llm()
     advisor = get_advisor()
     conversation_id = body.conversation_id or f"conv_{uuid.uuid4().hex[:10]}"
     run_id = f"run_{uuid.uuid4().hex[:12]}"
