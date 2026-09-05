@@ -98,16 +98,22 @@ def crew_opening(
         day_indexes=day_indexes,
     )
 
+    from .schedule_view import crew_schedule_window
+    impact_dict = impact.as_dict()
+    impact_dict["schedule_window"] = crew_schedule_window(world, crew_id)
+
     return ScenarioResult(
         reason,
         forked,
         {
             "resolved": True,
             "role": role,
-            "impact": impact.as_dict(),
-            **candidates.as_dict(),
-            "options": [c.as_dict() for c in candidates.eligible]
-            + ([candidates.cancel.as_dict()] if candidates.cancel else []),
+            "impact": impact_dict,
+            **candidates.as_dict(world=forked),
+            "options": [
+                c.as_dict(world=forked, cover_pairing_id=impact.pairing_id)
+                for c in candidates.eligible
+            ] + ([candidates.cancel.as_dict()] if candidates.cancel else []),
             "answer_key_options": candidates.options,
             "excluded_candidates": [e.as_dict() for e in candidates.excluded],
             "expected_choice": (

@@ -694,7 +694,7 @@ def enumerate_cover_candidates(
         sick_crew_id=sick_crew_id,
         day_indexes=day_indexes,
     )
-    return result.as_dict()
+    return result.as_dict(world=world)
 
 
 @tool(
@@ -789,7 +789,7 @@ def solve_joint_assignment(world: World, *, openings: list[dict]) -> dict:
     plan = solve(built, unavailable=sick)
     return {
         "openings": [
-            {"pairing_id": o.key, "label": o.label, **o.candidate_set.as_dict()} for o in built
+            {"pairing_id": o.key, "label": o.label, **o.candidate_set.as_dict(world=world)} for o in built
         ],
         "optimal_joint_plan": plan.as_dict(),
     }

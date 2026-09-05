@@ -120,6 +120,27 @@ export interface CostLine {
   basis: string
 }
 
+export interface ScheduleDay {
+  date: string
+  status: 'rostered' | 'cover' | 'conflict' | 'off'
+  pairing_id: string | null
+  duty_hours: number | null
+  flight_hours: number | null
+  report_utc: string | null
+  release_utc: string | null
+  conflicts: { rule: string; message: string }[]
+}
+
+export interface ScheduleWindow {
+  crew_id: string
+  window_start: string
+  window_end: string
+  cover_pairing_id: string | null
+  conflict_count: number
+  safe_to_assign: boolean
+  days: ScheduleDay[]
+}
+
 export interface CoverOption {
   rank: number
   action: string
@@ -150,6 +171,7 @@ export interface CoverOption {
   verdicts?: RuleVerdict[]
   seats_at_risk?: number
   flight_ids?: string[]
+  schedule_window?: ScheduleWindow
 }
 
 export interface ExcludedCandidate {
