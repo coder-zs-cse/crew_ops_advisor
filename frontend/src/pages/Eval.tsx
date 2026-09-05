@@ -72,7 +72,7 @@ export default function EvalPage() {
               className={llmAvailable ? 'chip-legal' : 'chip-caution'}
               title={llmAvailable ? `${capabilities.data?.llm?.provider} · ${capabilities.data?.llm?.model}` : undefined}
             >
-              <KeyRound size={11} /> {llmAvailable ? 'API key configured' : 'No API key configured'}
+              <KeyRound size={11} /> {llmAvailable ? 'API key configured' : 'Please enter your LLM API key'}
             </span>
           )}
         </div>
@@ -110,7 +110,7 @@ export default function EvalPage() {
               className="btn-primary"
               onClick={() => run.mutate()}
               disabled={run.isPending || (mode === 'live' && !llmAvailable)}
-              title={mode === 'live' && !llmAvailable ? 'Configure an API key to run this suite' : undefined}
+              title={mode === 'live' && !llmAvailable ? 'Please enter your LLM API key' : undefined}
             >
               <Play size={12} />
               {run.isPending
@@ -127,10 +127,9 @@ export default function EvalPage() {
           <div className="rounded-lg border border-caution/30 bg-caution/5 p-3 flex items-start gap-2">
             <AlertTriangle size={14} className="text-caution mt-0.5 shrink-0" />
             <p className="text-xs text-mute-300 leading-relaxed">
-              Configure an API key first — set <code className="mono">OPENAI_API_KEY</code> or{' '}
+              Please enter your LLM API key — set <code className="mono">OPENAI_API_KEY</code> or{' '}
               <code className="mono">ANTHROPIC_API_KEY</code> in <code className="mono">backend/.env</code> and
-              restart the server. The engine suite above works without one; this one specifically tests the
-              model, so it can't run without it.
+              restart the server. The engine suite above does not need a model; this one does.
             </p>
           </div>
         )}

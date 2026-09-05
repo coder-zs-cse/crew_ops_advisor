@@ -28,6 +28,7 @@ def test_auto_with_no_keys_defaults_to_anthropic_and_stays_offline() -> None:
     assert client.model == "claude-opus-5"
     assert not client.available
     assert client.status["provider"] == "anthropic"
+    assert client.status["note"] == "Please enter your LLM API key"
 
 
 def test_auto_picks_openai_when_only_openai_key_is_set(monkeypatch: pytest.MonkeyPatch) -> None:
