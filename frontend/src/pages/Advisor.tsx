@@ -86,6 +86,8 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
     ask.mutate(q)
   }
 
+  // An alert can hand a question straight to the advisor. The ref stops
+  // React Strict Mode from submitting the same seeded question twice.
   // Start a brand-new conversation
   const newConversation = () => {
     setTurns([])
@@ -137,8 +139,7 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
     }
   }
 
-  // An alert can hand a question straight to the advisor. The ref stops
-  // React Strict Mode from submitting the same seeded question twice.
+  // Alert can hand a question straight to the advisor
   useEffect(() => {
     const seeded = location.state?.question
     if (!seeded || seededRef.current === seeded) return
