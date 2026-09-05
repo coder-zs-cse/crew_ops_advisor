@@ -56,6 +56,19 @@ class Settings(BaseSettings):
     #: Seconds of wall-clock between watcher passes (demo cadence, not ops).
     watcher_interval_seconds: int = 300
 
+    #: Sarvam AI key for speech-to-text (/api/transcribe).
+    #: Read directly from .env — not prefixed with CREWOPS_ so the raw env var
+    #: name matches what Sarvam's own docs call it.
+    sarvam_api_key: str = ""
+
+    model_config = SettingsConfigDict(
+        env_prefix="CREWOPS_",
+        env_file=str(BACKEND_ROOT / ".env"),
+        extra="ignore",
+        # Allow SARVAM_API_KEY (no prefix) to map to sarvam_api_key
+        populate_by_name=True,
+    )
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
@@ -65,12 +78,20 @@ class Settings(BaseSettings):
         return self.database_url.startswith(("postgresql", "postgres"))
 
     @model_validator(mode="after")
-    def _default_data_dir(self) -> Settings:
+    def _default_data_dir(self) -> "Settings":
         if not (self.data_dir or "").strip():
             object.__setattr__(
                 self,
                 "data_dir",
                 str(BACKEND_ROOT / "data" / f"data-seed-{int(self.data_seed)}"),
+            )
+        # Also pull SARVAM_API_KEY from os.environ directly since pydantic-settings
+        # won't see unprefixed vars through CREWOPS_ prefix.
+        if not self.sarvam_api_key:
+            object.__setattr__(
+                self,
+                "sarvam_api_key",
+                os.environ.get("SARVAM_API_KEY", ""),
             )
         return self
 
