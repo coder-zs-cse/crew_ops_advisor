@@ -47,6 +47,7 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
   const [historyOpen, setHistoryOpen] = useState(true)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const seededRef = useRef<string | null>(null)
 
   const capabilities = useQuery({ queryKey: ['capabilities'], queryFn: api.capabilities })
   const llmAvailable = Boolean(capabilities.data?.llm?.available)
@@ -136,10 +137,13 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
     }
   }
 
-  // Alert can hand a question straight to the advisor
+  // An alert can hand a question straight to the advisor. The ref stops
+  // React Strict Mode from submitting the same seeded question twice.
   useEffect(() => {
     const seeded = location.state?.question
-    if (seeded) submit(seeded)
+    if (!seeded || seededRef.current === seeded) return
+    seededRef.current = seeded
+    submit(seeded)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state?.question])
 
