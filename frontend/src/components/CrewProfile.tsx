@@ -1,7 +1,38 @@
 import { useQuery } from '@tanstack/react-query'
 import { ErrorBox, Panel, Skeleton, StatTile } from './ui'
 import { DutyBudgetBar, DutyHistoryChart } from './viz'
-import { api, utcStamp, utcTime } from '../lib/api'
+import { api, utcTime, utcStamp } from '../lib/api'
+import type { ScheduleWindow } from '../lib/api'
+import clsx from 'clsx'
+
+const DAY_STATUS_CLASS: Record<string, string> = {
+  conflict: 'bg-breach/20 border-breach/50 text-breach',
+  rostered: 'bg-ink-700 border-ink-600 text-mute-300',
+  off: 'border-ink-700 text-mute-500',
+}
+
+function CrewScheduleWindow({ w }: { w: ScheduleWindow }) {
+  return (
+    <div className="flex gap-1 flex-wrap">
+      {w.days.map((d) => (
+        <div
+          key={d.date}
+          className={clsx(
+            'border rounded px-1.5 py-1 text-2xs min-w-[52px] text-center',
+            DAY_STATUS_CLASS[d.status] ?? DAY_STATUS_CLASS.off,
+          )}
+        >
+          <div className="font-mono">{d.date.slice(2)}</div>
+          <div className="text-mute-400 truncate">{d.pairing_id ?? 'off'}</div>
+          {d.duty_hours != null && <div className="text-mute-500">{d.duty_hours}h</div>}
+          {d.conflicts.map((c, i) => (
+            <div key={i} className="text-2xs text-breach truncate" title={c.message}>{c.rule}</div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 /**
  * A crew member's full profile: identity, duty budget, certifications, 28-day
@@ -146,6 +177,17 @@ export function CrewProfileBody({ crewId }: { crewId: string }) {
               </tbody>
             </table>
           </div>
+        </Panel>
+      )}
+
+      {timeline.data?.schedule_window && (
+        <Panel
+          title="7-day schedule window"
+          subtitle={timeline.data.schedule_window.safe_to_assign
+            ? 'No conflicts detected'
+            : `${timeline.data.schedule_window.conflict_count} conflict${timeline.data.schedule_window.conflict_count !== 1 ? 's' : ''} detected`}
+        >
+          <CrewScheduleWindow w={timeline.data.schedule_window} />
         </Panel>
       )}
     </div>

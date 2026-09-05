@@ -1,11 +1,67 @@
 import clsx from 'clsx'
 import { ChevronDown, ChevronRight, Plane, Send, XCircle } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
-import type { CandidateSetPayload, CoverOption, ExcludedCandidate } from '../lib/api'
-import { inr } from '../lib/api'
+import type { CandidateSetPayload, CoverOption, ExcludedCandidate, ScheduleWindow } from '../lib/api'
+import { inr, utcTime } from '../lib/api'
 import { STATUS, ruleColor, ruleShort } from '../lib/viz'
 import { LegalityBadge, Legend, Toggle, Tip } from './ui'
 import { CandidateScatter, ExclusionBreakdown, RuleProof } from './viz'
+
+const DAY_STATUS_CLASS: Record<string, string> = {
+  conflict: 'bg-breach/20 border-breach/50 text-breach',
+  cover: 'bg-signal/20 border-signal/50 text-signal',
+  rostered: 'bg-ink-700 border-ink-600 text-mute-300',
+  off: 'border-ink-700 text-mute-500',
+}
+
+function ScheduleStrip({ window: w }: { window: ScheduleWindow }) {
+  const [hovered, setHovered] = useState<number | null>(null)
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <p className="label">7-day schedule window</p>
+        {!w.safe_to_assign && (
+          <span className="chip-breach text-2xs">{w.conflict_count} conflict{w.conflict_count !== 1 ? 's' : ''}</span>
+        )}
+        {w.safe_to_assign && <span className="chip-legal text-2xs">safe</span>}
+      </div>
+      <div className="flex gap-1 flex-wrap">
+        {w.days.map((d, i) => (
+          <div
+            key={d.date}
+            className={clsx(
+              'relative border rounded px-1.5 py-1 text-2xs cursor-default min-w-[52px] text-center',
+              DAY_STATUS_CLASS[d.status] ?? DAY_STATUS_CLASS.off,
+            )}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <div className="font-mono">{d.date.slice(2)}</div>
+            <div className="text-mute-400 truncate">{d.pairing_id ?? 'off'}</div>
+            {d.duty_hours != null && <div className="text-mute-500">{d.duty_hours}h</div>}
+            {hovered === i && d.conflicts.length > 0 && (
+              <div className="absolute bottom-full left-0 mb-1 z-20 w-56 rounded-lg border border-breach/40 bg-ink-900 p-2 shadow-lg text-left">
+                {d.conflicts.map((c, j) => (
+                  <div key={j} className="text-2xs">
+                    <span className="text-breach font-semibold">{c.rule}</span>
+                    <span className="text-mute-300 ml-1">{c.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {hovered === i && d.conflicts.length === 0 && d.report_utc && (
+              <div className="absolute bottom-full left-0 mb-1 z-20 w-40 rounded-lg border border-ink-700 bg-ink-900 p-2 shadow-lg text-left">
+                <div className="text-2xs text-mute-400">
+                  {utcTime(d.report_utc)} – {utcTime(d.release_utc)}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 /**
  * The ranked options table.
@@ -155,7 +211,8 @@ export function OptionsTable({
                   {open && (
                     <tr className="bg-ink-850/60">
                       <td colSpan={9} className="px-4 py-3">
-                        <div className="grid gap-3 lg:grid-cols-2">
+                        <div className="space-y-3">
+                          <div className="grid gap-3 lg:grid-cols-2">
                           <div className="space-y-2">
                             <p className="label">Cost breakdown</p>
                             <ul className="space-y-1">
@@ -223,6 +280,10 @@ export function OptionsTable({
                               )}
                             </div>
                           </div>
+                          </div>
+                          {o.schedule_window && (
+                            <ScheduleStrip window={o.schedule_window} />
+                          )}
                         </div>
                       </td>
                     </tr>

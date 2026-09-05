@@ -402,6 +402,7 @@ def pairing_for_tail(world: World, *, aircraft: str, on: date) -> dict | None:
 
 
 def roster_for_crew(world: World, crew_id: str) -> dict:
+    from .schedule_view import crew_schedule_window
     segments = world.week_duties(crew_id)
     return {
         "crew_id": crew_id,
@@ -417,6 +418,7 @@ def roster_for_crew(world: World, crew_id: str) -> dict:
             }
             for s in segments
         ],
+        "schedule_window": crew_schedule_window(world, crew_id),
     }
 
 

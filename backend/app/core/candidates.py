@@ -70,7 +70,7 @@ class CoverCandidate:
             "rank": self.rank,
         }
 
-    def as_dict(self) -> dict:
+    def as_dict(self, world: World | None = None, cover_pairing_id: str | None = None) -> dict:
         base = self.as_answer_key_dict()
         base.update(
             {
@@ -89,6 +89,13 @@ class CoverCandidate:
                 "verdicts": [v.as_dict() for v in self.legality.verdicts],
             }
         )
+        if world is not None:
+            from .schedule_view import crew_schedule_window
+            base["schedule_window"] = crew_schedule_window(
+                world,
+                self.crew_id,
+                cover_pairing_id=cover_pairing_id,
+            )
         return base
 
 
@@ -172,7 +179,7 @@ class CandidateSet:
             counts[key] = counts.get(key, 0) + 1
         return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
 
-    def as_dict(self) -> dict:
+    def as_dict(self, world: World | None = None) -> dict:
         return {
             "role": self.role,
             "pairing_id": self.pairing_id,
@@ -181,8 +188,10 @@ class CandidateSet:
             "eligible_count": len(self.eligible),
             "excluded_count": len(self.excluded),
             "exclusion_summary": self.exclusion_summary(),
-            "options": [c.as_dict() for c in self.eligible]
-            + ([self.cancel.as_dict()] if self.cancel else []),
+            "options": [
+                c.as_dict(world=world, cover_pairing_id=self.pairing_id)
+                for c in self.eligible
+            ] + ([self.cancel.as_dict()] if self.cancel else []),
             "excluded_candidates": [e.as_dict() for e in self.excluded],
         }
 

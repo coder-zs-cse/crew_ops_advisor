@@ -87,14 +87,16 @@ def crew_timeline(crew_id: str, as_of: date | None = None) -> dict:
     if world.get_crew(crew_id) is None:
         raise HTTPException(404, f"crew {crew_id} not found")
     end = as_of or _today()
+    roster = q.roster_for_crew(world, crew_id)
     return {
         "crew_id": crew_id,
         "as_of": end.isoformat(),
         "duty_28d": window_breakdown(world, crew_id, end, 28, DUTY),
         "flight_28d": window_breakdown(world, crew_id, end, 28, FLIGHT),
-        "roster": q.roster_for_crew(world, crew_id)["duties"],
+        "roster": roster["duties"],
         "clock": q.duty_clock(world, crew_id, end),
         "limits": {"duty_7d": 60.0, "flight_28d": 100.0},
+        "schedule_window": roster.get("schedule_window"),
     }
 
 
