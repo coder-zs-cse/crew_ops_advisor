@@ -351,6 +351,19 @@ export const api = {
   // chat
   chat: (question: string, conversationId?: string) =>
     post<ChatAnswer>('/api/chat', { question, conversation_id: conversationId }),
+  conversations: (limit = 25) =>
+    get<{ count: number; conversations: { id: string; title: string; created_at: string; message_count: number }[] }>(
+      `/api/conversations${qs({ limit })}`,
+    ),
+  conversation: (id: string) =>
+    get<{ id: string; title: string; messages: { role: string; content: string; structured: any; run_id: string | null; created_at: string }[] }>(
+      `/api/conversations/${id}`,
+    ),
+  transcribe: (audio: Blob) => {
+    const form = new FormData()
+    form.append('audio', audio, 'recording.webm')
+    return request<{ transcript: string }>('/api/transcribe', { method: 'POST', body: form, headers: {} })
+  },
 
   conversations: (limit = 25) =>
     get<{ count: number; conversations: { id: string; title: string; created_at: string; message_count: number }[] }>(

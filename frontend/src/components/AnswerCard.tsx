@@ -1,5 +1,6 @@
 import clsx from 'clsx'
-import { Download, FileSearch, Info, Lightbulb } from 'lucide-react'
+import { Download, FileSearch, Info, Lightbulb, Square, Volume2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ChatAnswer, StructuredAnswer } from '../lib/api'
 import { api, inr, utcStamp, utcTime } from '../lib/api'
@@ -11,39 +12,118 @@ import { DutyBudgetBar, ReserveRibbon } from './viz'
 import { RuleProof } from './viz'
 
 /**
- * Renders a structured answer by its schema.
- *
- * The model wrote the prose above this; everything below is the object the
- * engine produced. Keeping them visually distinct is the point — a controller
- * can read the sentence or audit the table, and they are the same answer.
+ * Strips markdown and aviation codes so SpeechSynthesis reads naturally.
  */
+function toSpeakable(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/#+\s/g, '')
+    .replace(/^[-•]\s/gm, '')
+    .replace(/RULE-([A-Z]+)-(\d+)/g, (_, a, n) => `Rule ${a.split('').join(' ')} ${n}`)
+    .replace(/⚠️/g, 'Warning.')
+    .replace(/🔴/g, 'Critical.')
+    .replace(/·/g, ',')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+// Module-level utterance — one voice at a time across all cards
+let _utt: SpeechSynthesisUtterance | null = null
+
+function stopSpeech(): void {
+  window.speechSynthesis.cancel()
+  _utt = null
+}
+
+function getBestFemaleVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices()
+  // Preference order — best natural female English voices
+  const preferred = [
+    'Microsoft Aria Online (Natural) - English (United States)',
+    'Microsoft Jenny Online (Natural) - English (United States)',
+    'Google UK English Female',
+    'Samantha',
+    'Karen',
+    'Moira',
+    'Tessa',
+  ]
+  for (const name of preferred) {
+    const v = voices.find((v) => v.name === name)
+    if (v) return v
+  }
+  // Fallback: any English voice
+  return voices.find((v) => v.lang.startsWith('en')) ?? null
+}
+
+/** Speaks text via browser SpeechSynthesis with best available female voice. */
+function useSpeech() {
+  const [speaking, setSpeaking] = useState(false)
+
+  const speak = useCallback((text: string) => {
+    stopSpeech()
+    const utt = new SpeechSynthesisUtterance(toSpeakable(text).slice(0, 3500))
+    _utt = utt
+    utt.rate   = 0.92
+    utt.pitch  = 1.05
+    utt.volume = 1.0
+    utt.lang   = 'en-US'
+    utt.onstart = () => setSpeaking(true)
+    utt.onend   = () => { _utt = null; setSpeaking(false) }
+    utt.onerror = () => { _utt = null; setSpeaking(false) }
+
+    const doSpeak = () => {
+      const voice = getBestFemaleVoice()
+      if (voice) utt.voice = voice
+      window.speechSynthesis.speak(utt)
+    }
+
+    // Chrome loads voices async on first call
+    if (window.speechSynthesis.getVoices().length > 0) {
+      doSpeak()
+    } else {
+      window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
+    }
+  }, [])
+
+  const stop = useCallback(() => {
+    stopSpeech()
+    setSpeaking(false)
+  }, [])
+
+  return { speaking, speak, stop }
+}
+
+function SpeakButton({ text }: { text: string }) {
+  const { speaking, speak, stop } = useSpeech()
+  return (
+    <button
+      className="btn-ghost"
+      title={speaking ? 'Stop reading' : 'Read answer aloud'}
+      onClick={() => (speaking ? stop() : speak(text))}
+    >
+      {speaking ? <Square size={12} className="text-signal" /> : <Volume2 size={12} />}
+      {speaking ? 'Stop' : 'Listen'}
+    </button>
+  )
+}
+
 export function AnswerBody({ structured }: { structured: StructuredAnswer }) {
   switch (structured.schema) {
-    case 'recommendation':
-      return <RecommendationBody a={structured} />
-    case 'joint_recommendation':
-      return <JointBody a={structured} />
-    case 'legality':
-      return <LegalityBody a={structured} />
-    case 'impact':
-      return <ImpactBody a={structured} />
-    case 'duty_clock':
-      return <DutyClockBody a={structured} />
-    case 'reserve_list':
-      return <ReserveBody a={structured} />
-    case 'closure':
-      return <ClosureBody a={structured} />
-    case 'delay':
-      return <DelayBody a={structured} />
-    case 'notification':
-      return <NotificationBody a={structured} />
-    case 'briefing':
-      return <BriefingBody a={structured} />
+    case 'recommendation':    return <RecommendationBody a={structured} />
+    case 'joint_recommendation': return <JointBody a={structured} />
+    case 'legality':          return <LegalityBody a={structured} />
+    case 'impact':            return <ImpactBody a={structured} />
+    case 'duty_clock':        return <DutyClockBody a={structured} />
+    case 'reserve_list':      return <ReserveBody a={structured} />
+    case 'closure':           return <ClosureBody a={structured} />
+    case 'delay':             return <DelayBody a={structured} />
+    case 'notification':      return <NotificationBody a={structured} />
+    case 'briefing':          return <BriefingBody a={structured} />
     case 'abstention':
-    case 'clarification':
-      return <AbstentionBody a={structured} />
-    default:
-      return <GenericBody a={structured} />
+    case 'clarification':     return <AbstentionBody a={structured} />
+    default:                  return <GenericBody a={structured} />
   }
 }
 
@@ -62,9 +142,7 @@ function RecommendationBody({ a }: { a: StructuredAnswer }) {
           flightsDetail={a.impact.flights_detail}
         />
       ) : null}
-
       <OptionsTable options={a.options ?? []} />
-
       {a.excluded_candidates?.length ? (
         <details className="group">
           <summary className="cursor-pointer text-xs text-mute-300 hover:text-signal select-none">
@@ -106,8 +184,7 @@ function JointBody({ a }: { a: StructuredAnswer }) {
       {plan.tie_count > 1 && (
         <p className="text-2xs text-mute-400 leading-relaxed border-t border-ink-800 pt-2">
           {plan.tie_count} plans tie at this cost. Swapping which opening each candidate covers is
-          equally correct — the dataset says so explicitly, so we do not pretend the tie-break is
-          meaningful.
+          equally correct — the dataset says so explicitly, so we do not pretend the tie-break is meaningful.
         </p>
       )}
       {(a.openings ?? []).map((opening: any) => (
@@ -170,16 +247,8 @@ function DutyClockBody({ a }: { a: StructuredAnswer }) {
   if (!d) return null
   return (
     <div className="space-y-4">
-      <DutyBudgetBar
-        used={d.duty_hours_7d}
-        limit={d.duty_limit_7d}
-        label={`RULE-DUTY-02 · 7 days to ${d.as_of}`}
-      />
-      <DutyBudgetBar
-        used={d.flight_hours_28d}
-        limit={d.flight_limit_28d}
-        label={`RULE-FLT-03 · 28 days to ${d.as_of}`}
-      />
+      <DutyBudgetBar used={d.duty_hours_7d} limit={d.duty_limit_7d} label={`RULE-DUTY-02 · 7 days to ${d.as_of}`} />
+      <DutyBudgetBar used={d.flight_hours_28d} limit={d.flight_limit_28d} label={`RULE-FLT-03 · 28 days to ${d.as_of}`} />
       {d.last_rest_ended && (
         <p className="text-2xs text-mute-400">Last rest ended {utcStamp(d.last_rest_ended)}.</p>
       )}
@@ -224,9 +293,7 @@ function ClosureBody({ a }: { a: StructuredAnswer }) {
                   <td className="cell num text-mute-200">{row.flight_id}</td>
                   <td className="cell num text-mute-400">{row.pairing_id}</td>
                   <td className="cell num text-right text-caution">{row.min_delay_hours}h</td>
-                  <td
-                    className={clsx('cell num text-right', bust ? 'text-breach font-semibold' : 'text-legal')}
-                  >
+                  <td className={clsx('cell num text-right', bust ? 'text-breach font-semibold' : 'text-legal')}>
                     {row.crew_fdp_after_delay}h
                   </td>
                   <td className="cell num text-right text-mute-400">{row.fdp_limit}h</td>
@@ -322,7 +389,7 @@ function BriefingBody({ a }: { a: StructuredAnswer }) {
     <div className="space-y-2">
       {b.lines.map((line: any) => {
         const tight = line.duty_headroom.tightest_crew ?? {}
-        const gaps = line.reserve_depth.uncovered_roles ?? []
+        const gaps  = line.reserve_depth.uncovered_roles ?? []
         return (
           <div key={`${line.aircraft}-${line.pairing_id}`} className="panel p-3">
             <div className="flex items-center justify-between">
@@ -374,15 +441,9 @@ function BriefingBody({ a }: { a: StructuredAnswer }) {
 }
 
 function Metric({
-  label,
-  value,
-  note,
-  tone,
+  label, value, note, tone,
 }: {
-  label: string
-  value: string
-  note?: string
-  tone: 'legal' | 'caution' | 'breach'
+  label: string; value: string; note?: string; tone: 'legal' | 'caution' | 'breach'
 }) {
   const color = { legal: 'text-legal', caution: 'text-caution', breach: 'text-breach' }[tone]
   return (
@@ -418,9 +479,7 @@ function AbstentionBody({ a }: { a: StructuredAnswer }) {
           </summary>
           <ul className="mt-1.5 space-y-0.5">
             {a.capabilities.cannot_answer.map((c: string, i: number) => (
-              <li key={i} className="text-2xs text-mute-400">
-                — {c}
-              </li>
+              <li key={i} className="text-2xs text-mute-400">– {c}</li>
             ))}
           </ul>
         </details>
@@ -432,31 +491,21 @@ function AbstentionBody({ a }: { a: StructuredAnswer }) {
 function GenericBody({ a }: { a: StructuredAnswer }) {
   const primary = a.primary
   if (!primary) return null
-
   const rows: any[] =
     primary.crew ?? primary.flights ?? primary.certifications ?? primary.reserves ?? primary.rules ?? []
-
   if (Array.isArray(rows) && rows.length > 0 && typeof rows[0] === 'object') {
     const cols = Object.keys(rows[0]).filter((k) => typeof rows[0][k] !== 'object').slice(0, 7)
     return (
       <div className="xscroll max-h-80 overflow-y-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr>
-              {cols.map((c) => (
-                <th key={c} className="th">
-                  {c.replace(/_/g, ' ')}
-                </th>
-              ))}
-            </tr>
+            <tr>{cols.map((c) => <th key={c} className="th">{c.replace(/_/g, ' ')}</th>)}</tr>
           </thead>
           <tbody>
             {rows.slice(0, 60).map((row, i) => (
               <tr key={i} className="tr">
                 {cols.map((c) => (
-                  <td key={c} className="cell num text-mute-300">
-                    {String(row[c] ?? '—')}
-                  </td>
+                  <td key={c} className="cell num text-mute-300">{String(row[c] ?? '—')}</td>
                 ))}
               </tr>
             ))}
@@ -465,7 +514,6 @@ function GenericBody({ a }: { a: StructuredAnswer }) {
       </div>
     )
   }
-
   return (
     <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
       {Object.entries(primary)
@@ -480,8 +528,7 @@ function GenericBody({ a }: { a: StructuredAnswer }) {
   )
 }
 
-/** The full chat answer: prose, structured body, citations, and the audit link. */
-export function AnswerCard({ answer }: { answer: ChatAnswer }) {
+export function AnswerCard({ answer, from = '/advisor' }: { answer: ChatAnswer; from?: string }) {
   return (
     <Panel
       title={answer.structured?.headline ?? 'Answer'}
@@ -493,7 +540,13 @@ export function AnswerCard({ answer }: { answer: ChatAnswer }) {
       actions={
         <div className="flex items-center gap-2">
           <VerificationBadge verification={answer.verification} />
-          <Link to={`/runs/${answer.run_id}`} className="btn-ghost" title="Open the full reasoning trace">
+          <SpeakButton text={answer.answer} />
+          <Link
+            to={`/runs/${answer.run_id}`}
+            state={{ from }}
+            className="btn-ghost"
+            title="Open the full reasoning trace"
+          >
             <FileSearch size={12} /> Trace
           </Link>
           <a
@@ -508,15 +561,11 @@ export function AnswerCard({ answer }: { answer: ChatAnswer }) {
     >
       <div className="space-y-4">
         <p className="text-sm text-mute-200 whitespace-pre-wrap leading-relaxed">{answer.answer}</p>
-
         {answer.citations.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {answer.citations.map((c) => (
-              <RuleChip key={c} ruleId={c} />
-            ))}
+            {answer.citations.map((c) => <RuleChip key={c} ruleId={c} />)}
           </div>
         )}
-
         {answer.structured && (
           <div className="border-t border-ink-800 pt-4">
             <AnswerBody structured={answer.structured} />
