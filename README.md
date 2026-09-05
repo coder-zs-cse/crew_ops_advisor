@@ -27,6 +27,8 @@ cd backend
 python -m venv .venv && .venv/Scripts/activate      # Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
 copy .env.example .env                             # Linux/macOS: cp .env.example .env
+# Set OPENAI_API_KEY or ANTHROPIC_API_KEY (or run `ant auth login`).
+# Pin the provider with CREWOPS_LLM_PROVIDER (`openai`, `anthropic`, or `auto`).
 # Set CREWOPS_DATA_SEED (default 42). First boot fills data/data-seed-{n}/.
 uvicorn app.main:app --reload --port 8000
 
@@ -36,11 +38,10 @@ npm install
 npm run dev            # http://localhost:5173, proxies /api to :8000
 ```
 
-No API key is required. Without one the pattern router and template narrator answer every
-graded question correctly — the header shows **Deterministic only**. To enable the model
-layer, copy `backend/.env.example` to `backend/.env` and set either `OPENAI_API_KEY` or
-`ANTHROPIC_API_KEY` (or run `ant auth login`). Pin the provider with `CREWOPS_LLM_PROVIDER`
-(`openai`, `anthropic`, or `auto`). Restart; the badge flips to **LLM live**.
+An LLM API key is required. Copy `backend/.env.example` to `backend/.env` and set
+`OPENAI_API_KEY` or `ANTHROPIC_API_KEY` (or run `ant auth login`). Until a key is
+configured the header shows **Please enter your LLM API key**, and the advisor will
+not run. Restart after setting a key; the badge flips to **LLM live**.
 
 ```bash
 cd backend && python -m pytest tests/ -q      # 122 tests, ~2s

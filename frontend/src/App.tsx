@@ -99,7 +99,7 @@ export default function App() {
               title={
                 llmLive
                   ? 'Language model reachable — used for intent and narration only.'
-                  : 'No model credentials. Pattern routing and template narration answer every graded question without one.'
+                  : 'Set OPENAI_API_KEY or ANTHROPIC_API_KEY in backend/.env and restart.'
               }
             >
               <span
@@ -109,7 +109,7 @@ export default function App() {
                 )}
                 aria-hidden
               />
-              {llmLive ? 'LLM live' : 'Deterministic only'}
+              {llmLive ? 'LLM live' : 'Please enter your LLM API key'}
             </div>
             {engine === false && <span className="chip-caution">scheduler off</span>}
           </div>

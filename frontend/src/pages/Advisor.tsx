@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { CornerDownLeft, PanelLeftClose, PanelLeftOpen, Plus, Sparkles, Terminal } from 'lucide-react'
+import { CornerDownLeft, KeyRound, PanelLeftClose, PanelLeftOpen, Plus, Sparkles, Terminal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AnswerCard } from '../components/AnswerCard'
@@ -49,6 +49,8 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const capabilities = useQuery({ queryKey: ['capabilities'], queryFn: api.capabilities })
+  const llmAvailable = Boolean(capabilities.data?.llm?.available)
+  const needsKey = capabilities.data != null && !llmAvailable
 
   // History list — always visible in sidebar, refreshes every 15s
   const conversations = useQuery({
@@ -78,7 +80,7 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
 
   const submit = (question: string) => {
     const q = question.trim()
-    if (!q || ask.isPending) return
+    if (!q || ask.isPending || needsKey) return
     setInput('')
     ask.mutate(q)
   }
@@ -256,9 +258,13 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {turns.length === 0 && (
             <EmptyState
-              icon={Sparkles}
-              title="Ask in plain language"
-              body="Lookups, consequence questions, and ranked recommendations. When a question is outside what can be computed from this dataset, the advisor says so rather than guessing."
+              icon={needsKey ? KeyRound : Sparkles}
+              title={needsKey ? 'Please enter your LLM API key' : 'Ask in plain language'}
+              body={
+                needsKey
+                  ? 'Set OPENAI_API_KEY or ANTHROPIC_API_KEY in backend/.env and restart the server.'
+                  : 'Lookups, consequence questions, and ranked recommendations. When a question is outside what can be computed from this dataset, the advisor says so rather than guessing.'
+              }
             />
           )}
 
@@ -297,13 +303,18 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
                 }
               }}
               rows={2}
-              placeholder="A captain just called in sick — what should I do?   (⌘J to focus, Enter to send)"
+              placeholder={
+                needsKey
+                  ? 'Please enter your LLM API key'
+                  : 'A captain just called in sick — what should I do?   (⌘J to focus, Enter to send)'
+              }
+              disabled={needsKey}
               className="input flex-1 resize-none"
             />
             <button
               className="btn-primary h-9"
               onClick={() => submit(input)}
-              disabled={ask.isPending}
+              disabled={ask.isPending || needsKey}
             >
               <CornerDownLeft size={13} /> Ask
             </button>
@@ -329,7 +340,8 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
               <li key={s.text}>
                 <button
                   onClick={() => submit(s.text)}
-                  className="w-full text-left text-2xs text-mute-300 hover:text-signal px-2 py-1.5 rounded-lg hover:bg-ink-850 leading-snug transition-colors"
+                  disabled={needsKey}
+                  className="w-full text-left text-2xs text-mute-300 hover:text-signal px-2 py-1.5 rounded-lg hover:bg-ink-850 leading-snug transition-colors disabled:opacity-40 disabled:hover:text-mute-300 disabled:hover:bg-transparent"
                 >
                   <span className="chip-neutral mr-1.5">T{s.tier}</span>
                   {s.text}
@@ -341,7 +353,7 @@ export default function AdvisorPage({ turns, setTurns, conversationId, setConver
 
         <Panel
           title="What it will not answer"
-          subtitle={capabilities.data?.llm?.available ? undefined : 'Model offline — deterministic answers only'}
+          subtitle={needsKey ? 'Please enter your LLM API key' : undefined}
           bodyClassName="p-3"
         >
           <ul className="space-y-1">
