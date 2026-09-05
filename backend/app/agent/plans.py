@@ -435,6 +435,11 @@ POLICY_RE = _rx(
     r"|\bdo you (think|recommend) we should\b|\bwould you\b.*\brather\b"
 )
 
+DECISION_MEMORY_RE = _rx(
+    r"\b(last time|previously|before|history of|past decision|what did we decide|what was decided)\b"
+    r".*\b(sick|unavailable|out|decision|chose|assigned|covered)\b"
+)
+
 #: Two independent disruptions in one sentence. Each is modelled; the pair is
 #: not, and answering only the second one silently is the dangerous outcome.
 _EVENT_A = r"clos(?:e|es|ed|ing|ure)|delay(?:s|ed|ing)?|cancell?(?:s|ed|ing|ation)?"
@@ -510,6 +515,17 @@ def route(question: str, ents: Entities) -> Intent:
     # it was removed rather than tuned.
     policy = bool(POLICY_RE.search(question))
     compound = bool(COMPOUND_EVENT_RE.search(question))
+    if bool(DECISION_MEMORY_RE.search(question)):
+        from app.agent.state import Intent as _Intent
+        return _Intent(
+            name="UNSUPPORTED",
+            tier=1,
+            confidence=0.99,
+            source="pattern",
+            rationale="decision memory not available — decisions are stored but not queried",
+            compound=False,
+            policy_question=False,
+        )
 
     plan = PLANS.get(best)
     return Intent(

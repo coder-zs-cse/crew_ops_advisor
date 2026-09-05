@@ -187,6 +187,9 @@ def crew_unavailable(
 
 def cancellation_impact(world: World, flight_ids: Iterable[str]) -> dict:
     ids = list(flight_ids)
+    missing = [fid for fid in ids if world.get_flight(fid) is None]
+    if missing:
+        return {"error": f"unknown flight id(s): {', '.join(missing)}", "resolved": False}
     flights = [world.flight(fid) for fid in ids]
     seats = sum(f.seats for f in flights)
     cost = world.costs.cancellation_per_flight * len(flights)
