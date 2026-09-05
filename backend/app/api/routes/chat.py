@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -139,6 +138,58 @@ async def chat_stream(body: ChatRequest, request: Request) -> EventSourceRespons
             EVENT_BUS.unsubscribe(queue, run_id)
 
     return EventSourceResponse(generate())
+
+
+@router.post("/transcribe")
+async def transcribe(request: Request) -> dict:
+    """Speech-to-text via Sarvam AI.
+
+    Accepts multipart/form-data with an 'audio' field (webm/wav/mp3).
+    Returns {"transcript": "..."}
+    """
+    from ...config import get_settings
+
+    settings = get_settings()
+    if not settings.sarvam_api_key:
+        raise HTTPException(503, "SARVAM_API_KEY not configured — add it to backend/.env")
+
+    form = await request.form()
+    audio_file = form.get("audio")
+    if audio_file is None:
+        raise HTTPException(400, "Missing 'audio' field in multipart form")
+
+    audio_bytes = await audio_file.read()
+    if not audio_bytes:
+        raise HTTPException(400, "Audio file is empty")
+
+    try:
+        import httpx
+
+        filename = getattr(audio_file, "filename", None) or "recording.webm"
+        content_type = getattr(audio_file, "content_type", None) or "audio/webm"
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://api.sarvam.ai/speech-to-text",
+                headers={"api-subscription-key": settings.sarvam_api_key},
+                files={"file": (filename, audio_bytes, content_type)},
+                data={"language_code": "en-IN", "model": "saaras:v3"},
+            )
+
+        if not resp.is_success:
+            raise HTTPException(
+                502,
+                f"Sarvam API returned {resp.status_code}: {resp.text[:300]}",
+            )
+
+        result = resp.json()
+        transcript = result.get("transcript") or result.get("text") or ""
+        return {"transcript": transcript}
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(502, f"Transcription failed: {type(exc).__name__}: {exc}") from exc
 
 
 @router.get("/conversations")
