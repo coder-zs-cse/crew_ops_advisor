@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ExternalLink } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { AircraftProfileBody, PairingProfileBody, StationProfileBody } from './EntityProfiles'
 import { CrewProfileBody } from './CrewProfile'
@@ -16,16 +16,19 @@ const LABEL: Record<EntityKind, string> = {
   station: 'station',
 }
 
-function useOptions(kind: EntityKind): { value: string; label: string }[] {
+function useOptions(
+  kind: EntityKind,
+  crewId?: string,
+): { options: { value: string; label: string }[]; isLoading: boolean } {
   const crew = useQuery({
     queryKey: ['picker-crew'],
     queryFn: () => api.crew(),
     enabled: kind === 'crew',
   })
   const pairings = useQuery({
-    queryKey: ['picker-pairings'],
-    queryFn: () => api.pairings(),
-    enabled: kind === 'pairing',
+    queryKey: ['picker-pairings', crewId ?? null],
+    queryFn: () => api.pairings(crewId ? { crew_id: crewId } : {}),
+    enabled: kind === 'pairing' && crewId !== '',
   })
   const snapshot = useQuery({
     queryKey: ['snapshot'],
@@ -33,7 +36,7 @@ function useOptions(kind: EntityKind): { value: string; label: string }[] {
     enabled: kind === 'aircraft' || kind === 'station',
   })
 
-  return useMemo(() => {
+  const options = useMemo(() => {
     if (kind === 'crew') {
       return (crew.data?.crew ?? [])
         .slice()
@@ -60,6 +63,15 @@ function useOptions(kind: EntityKind): { value: string; label: string }[] {
     }
     return []
   }, [kind, crew.data, pairings.data, snapshot.data])
+
+  const isLoading =
+    kind === 'crew'
+      ? crew.isLoading
+      : kind === 'pairing'
+        ? pairings.isLoading
+        : snapshot.isLoading
+
+  return { options, isLoading }
 }
 
 /**
@@ -75,16 +87,29 @@ export function EntityPicker({
   onChange,
   label,
   placeholder = 'Select…',
+  crewId,
 }: {
   kind: EntityKind
   value: string
   onChange: (value: string) => void
   label: string
   placeholder?: string
+  /** When set on a pairing picker, only that crew member's pairings are listed. */
+  crewId?: string
 }) {
-  const options = useOptions(kind)
+  const { options, isLoading } = useOptions(kind, crewId)
   const [open, setOpen] = useState(false)
   const hasValue = Boolean(value && options.some((o) => o.value === value))
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
+  useEffect(() => {
+    if (kind !== 'pairing' || crewId === undefined) return
+    if (isLoading) return
+    if (options.some((o) => o.value === value)) return
+    const next = options[0]?.value ?? ''
+    if (next !== value) onChangeRef.current(next)
+  }, [kind, crewId, isLoading, options, value])
 
   return (
     <label className="block">
@@ -96,7 +121,9 @@ export function EntityPicker({
           onChange={(e) => onChange(e.target.value)}
         >
           <option value="" disabled>
-            {placeholder}
+            {kind === 'pairing' && crewId && !isLoading && options.length === 0
+              ? 'No pairings for this crew'
+              : placeholder}
           </option>
           {/* If the current value isn't in the loaded list yet (still fetching,
               or a value seeded from elsewhere), keep it selectable rather than

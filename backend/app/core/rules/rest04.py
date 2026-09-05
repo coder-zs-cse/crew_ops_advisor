@@ -16,10 +16,12 @@ The downstream case is the one a controller misses by eye, and it is why
 from __future__ import annotations
 
 from ..models import ArithmeticStep, RuleVerdict
+from ..rule_params import rule_param
 from ..timeutil import EPS, hrs
 from .base import CoverContext
 
 RULE_ID = "RULE-REST-04"
+#: Sample-dataset fallback only. See ``rule_params.py``.
 MIN_REST_HOURS = 12.0
 OVERLAP_ID = "CONSTRAINT-OVERLAP"
 
@@ -28,11 +30,13 @@ class MinimumRestRule:
     rule_id = RULE_ID
 
     def evaluate(self, ctx: CoverContext) -> list[RuleVerdict]:
+        min_rest_hours = rule_param(ctx.world, RULE_ID, "min_rest_hours", MIN_REST_HOURS)
+
         out: list[RuleVerdict] = []
         timeline = ctx.timeline
         for prev, nxt in zip(timeline, timeline[1:]):
             rest = hrs(nxt.report_utc - prev.release_utc)
-            if rest >= MIN_REST_HOURS - EPS:
+            if rest >= min_rest_hours - EPS:
                 continue
             tag = "downstream" if (not nxt.is_cover and prev.is_cover) else "rest"
             out.append(
@@ -46,8 +50,8 @@ class MinimumRestRule:
                     subject_crew_id=ctx.crew_id,
                     subject_date=nxt.date,
                     actual=rest,
-                    limit=MIN_REST_HOURS,
-                    margin=round(rest - MIN_REST_HOURS, 2),
+                    limit=min_rest_hours,
+                    margin=round(rest - min_rest_hours, 2),
                     arithmetic=(
                         ArithmeticStep(
                             "Previous release",
@@ -60,7 +64,7 @@ class MinimumRestRule:
                             nxt.report_utc.strftime("%Y-%m-%dT%H:%MZ"),
                         ),
                         ArithmeticStep("Rest available", "report - release", rest, "h"),
-                        ArithmeticStep("Required", "RULE-REST-04", MIN_REST_HOURS, "h"),
+                        ArithmeticStep("Required", "RULE-REST-04", min_rest_hours, "h"),
                     ),
                 )
             )

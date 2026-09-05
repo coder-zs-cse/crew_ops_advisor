@@ -137,10 +137,10 @@ def max_legal_sectors(world: World, day: PairingDay, delay_hours: float) -> tupl
 
     Uses the fixed-report convention, consistently with the breach test above.
     """
-    best_k, best_fdp, best_limit = 0, 0.0, fdp_limit(1)
+    best_k, best_fdp, best_limit = 0, 0.0, fdp_limit(1, world)
     for k in range(1, day.sectors + 1):
         fdp = partial_fdp(world, day, delay_hours, k, shift_report=False)
-        limit = fdp_limit(k)
+        limit = fdp_limit(k, world)
         if fdp <= limit + EPS:
             best_k, best_fdp, best_limit = k, fdp, limit
         else:
@@ -159,7 +159,7 @@ def aircraft_delay(
     scheduled = hrs(day.release_utc - day.report_utc)
     # Reference convention: crew reported on time, release slides.
     after = round(scheduled + delay_hours, 2)
-    limit = fdp_limit(day.sectors)
+    limit = fdp_limit(day.sectors, world)
     breach = after > limit + EPS
 
     k, k_fdp, k_limit = max_legal_sectors(world, day, delay_hours)

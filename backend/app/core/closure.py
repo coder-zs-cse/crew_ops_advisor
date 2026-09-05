@@ -114,7 +114,7 @@ def station_closure(
 
         new_release = day.release_utc + timedelta(hours=shift)
         new_fdp = hrs(new_release - day.report_utc)
-        limit = fdp_limit(day.sectors)
+        limit = fdp_limit(day.sectors, world)
         feasible = new_fdp <= limit + EPS
 
         assessments.append(

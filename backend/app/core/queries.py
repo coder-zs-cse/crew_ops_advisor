@@ -12,6 +12,7 @@ from typing import Iterable
 
 from .duty import earliest_next_report
 from .models import PILOT_ROLES
+from .rule_params import rule_param
 from .rules.duty02 import MAX_DUTY_HOURS
 from .rules.flt03 import MAX_FLIGHT_HOURS
 from .timeutil import at, fmt_dt
@@ -93,8 +94,13 @@ def duty_clock(world: World, crew_id: str, as_of: date | None = None) -> dict | 
         return None
     end = as_of or world.snapshot_utc.date()
 
-    duty_7d = window_sum(world, crew_id, end, 7, DUTY)
-    flight_28d = window_sum(world, crew_id, end, 28, FLIGHT)
+    max_duty_hours = rule_param(world, "RULE-DUTY-02", "max_duty_hours", MAX_DUTY_HOURS)
+    duty_window_days = int(rule_param(world, "RULE-DUTY-02", "window_days", 7))
+    max_flight_hours = rule_param(world, "RULE-FLT-03", "max_flight_hours", MAX_FLIGHT_HOURS)
+    flight_window_days = int(rule_param(world, "RULE-FLT-03", "window_days", 28))
+
+    duty_7d = window_sum(world, crew_id, end, duty_window_days, DUTY)
+    flight_28d = window_sum(world, crew_id, end, flight_window_days, FLIGHT)
     clock = world.clock(crew_id) if crew_id in {d.crew_id for d in world.duty_clocks} else None
 
     return {
@@ -102,25 +108,25 @@ def duty_clock(world: World, crew_id: str, as_of: date | None = None) -> dict | 
         "rank": crew.rank,
         "as_of": end.isoformat(),
         "duty_hours_7d": duty_7d,
-        "duty_limit_7d": MAX_DUTY_HOURS,
-        "headroom_hours": round(MAX_DUTY_HOURS - duty_7d, 2),
+        "duty_limit_7d": max_duty_hours,
+        "headroom_hours": round(max_duty_hours - duty_7d, 2),
         "duty_window": {
-            "days": 7,
-            "start": (end - timedelta(days=6)).isoformat(),
+            "days": duty_window_days,
+            "start": (end - timedelta(days=duty_window_days - 1)).isoformat(),
             "end": end.isoformat(),
             "rule": "RULE-DUTY-02",
         },
         "flight_hours_28d": flight_28d,
-        "flight_limit_28d": MAX_FLIGHT_HOURS,
-        "flight_headroom_hours": round(MAX_FLIGHT_HOURS - flight_28d, 2),
+        "flight_limit_28d": max_flight_hours,
+        "flight_headroom_hours": round(max_flight_hours - flight_28d, 2),
         "flight_window": {
-            "days": 28,
-            "start": (end - timedelta(days=27)).isoformat(),
+            "days": flight_window_days,
+            "start": (end - timedelta(days=flight_window_days - 1)).isoformat(),
             "end": end.isoformat(),
             "rule": "RULE-FLT-03",
         },
         "last_rest_ended": fmt_dt(clock.last_rest_ended) if clock and clock.last_rest_ended else None,
-        "daily_breakdown_7d": window_breakdown(world, crew_id, end, 7, DUTY),
+        "daily_breakdown_7d": window_breakdown(world, crew_id, end, duty_window_days, DUTY),
     }
 
 
@@ -128,6 +134,7 @@ def duty_window_scan(
     world: World, *, on: date, threshold_hours: float = 45.0, days: int = 7
 ) -> dict:
     """Q26: everyone at or above a duty-hour threshold in the window ending ``on``."""
+    max_duty_hours = rule_param(world, "RULE-DUTY-02", "max_duty_hours", MAX_DUTY_HOURS)
     rows = []
     for crew in world.crew:
         total = window_sum(world, crew.crew_id, on, days, DUTY)
@@ -139,7 +146,7 @@ def duty_window_scan(
                     "rank": crew.rank,
                     "base": crew.base,
                     "duty_hours": total,
-                    "headroom_hours": round(MAX_DUTY_HOURS - total, 2),
+                    "headroom_hours": round(max_duty_hours - total, 2),
                 }
             )
     rows.sort(key=lambda r: (-r["duty_hours"], r["crew_id"]))

@@ -27,11 +27,12 @@ const KINDS: { value: EventKind; label: string; hint: string }[] = [
  * disruptions" means, and the lineage strip shows the chain.
  */
 export default function WorkbenchPage() {
-  const location = useLocation() as { state?: { pairingId?: string } }
+  const location = useLocation() as { state?: { pairingId?: string; crewId?: string } }
+  const incoming = location.state
   const [kind, setKind] = useState<EventKind>('sick')
   const [form, setForm] = useState<Record<string, string>>({
-    crew_id: 'C-1042',
-    pairing_id: 'P-2291',
+    crew_id: incoming?.crewId ?? 'C-1042',
+    pairing_id: incoming?.pairingId ?? 'P-2291',
     reported_utc: '2026-09-15T05:00:00Z',
     station: 'BLR',
     start_utc: '2026-09-17T08:00:00Z',
@@ -50,10 +51,16 @@ export default function WorkbenchPage() {
   const scenarios = useQuery({ queryKey: ['scenarios'], queryFn: () => api.scenarios(true) })
 
   useEffect(() => {
-    if (location.state?.pairingId) {
-      setForm((f) => ({ ...f, pairing_id: location.state!.pairingId! }))
-    }
-  }, [location.state?.pairingId])
+    const pairingId = location.state?.pairingId
+    const crewId = location.state?.crewId
+    if (!pairingId && !crewId) return
+    setKind('sick')
+    setForm((f) => ({
+      ...f,
+      ...(crewId ? { crew_id: crewId } : {}),
+      ...(pairingId ? { pairing_id: pairingId } : {}),
+    }))
+  }, [location.state?.pairingId, location.state?.crewId])
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -181,6 +188,7 @@ export default function WorkbenchPage() {
                   label="Pairing"
                   value={form.pairing_id}
                   onChange={setValue('pairing_id')}
+                  crewId={form.crew_id}
                 />
                 {kind === 'multi_sick' && (
                   <>
@@ -195,6 +203,7 @@ export default function WorkbenchPage() {
                       label="Second pairing"
                       value={form.pairing_id_2}
                       onChange={setValue('pairing_id_2')}
+                      crewId={form.crew_id_2}
                     />
                   </>
                 )}

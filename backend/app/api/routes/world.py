@@ -222,13 +222,17 @@ def gantt(start: date | None = None, days: int = 7) -> dict:
 
 
 @router.get("/pairings")
-def list_pairings(on: date | None = None, aircraft: str | None = None) -> dict:
+def list_pairings(
+    on: date | None = None, aircraft: str | None = None, crew_id: str | None = None
+) -> dict:
     world = get_world()
     rows = []
     for pairing in world.pairings:
         if aircraft and pairing.aircraft != aircraft:
             continue
         if on and not any(d.date == on for d in pairing.days):
+            continue
+        if crew_id and not any(cid == crew_id for cid, _ in pairing.crew):
             continue
         rows.append(
             {
@@ -238,6 +242,7 @@ def list_pairings(on: date | None = None, aircraft: str | None = None) -> dict:
                 "start_date": pairing.days[0].date.isoformat(),
                 "total_sectors": pairing.total_sectors,
                 "crew_count": len(pairing.crew),
+                "crew": [{"crew_id": cid, "role": role} for cid, role in pairing.crew],
             }
         )
     return {"count": len(rows), "pairings": rows}

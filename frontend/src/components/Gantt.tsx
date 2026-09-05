@@ -25,7 +25,7 @@ export function TailGantt({
   dates: string[]
   highlightFlights?: Set<string>
   breachPairings?: Set<string>
-  onSelectPairing?: (pairingId: string) => void
+  onSelectPairing?: (pairingId: string, crew: { crew_id: string; role: string }[]) => void
   selectedPairing?: string | null
 }) {
   const dayList = useMemo(() => dates.slice(0, 7), [dates])
@@ -89,7 +89,7 @@ export function TailGantt({
                             )} · ${p.seats} seats`}
                           >
                             <button
-                              onClick={() => onSelectPairing?.(p.pairing_id)}
+                              onClick={() => onSelectPairing?.(p.pairing_id, p.crew)}
                               className={clsx(
                                 'w-full h-full rounded-[3px] flex items-stretch gap-[1px] px-[1px] overflow-hidden',
                                 'transition-all hover:brightness-125',

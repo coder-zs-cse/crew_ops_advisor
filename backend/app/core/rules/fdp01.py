@@ -4,10 +4,20 @@ from __future__ import annotations
 
 from ..duty import fdp_limit, shifted
 from ..models import ArithmeticStep, PairingDay, RuleVerdict
+from ..rule_params import rule_param
 from ..timeutil import EPS, hrs
+from ..world import World
 from .base import CoverContext
 
 RULE_ID = "RULE-FDP-01"
+
+
+def _fdp_formula(world: World | None, sectors: int) -> str:
+    """The formula string shown in the arithmetic trace, from this dataset's own params."""
+    base = rule_param(world, RULE_ID, "base_fdp_hours", 13.0)
+    free = rule_param(world, RULE_ID, "free_sectors", 2)
+    reduction = rule_param(world, RULE_ID, "reduction_per_extra_sector_hours", 0.5)
+    return f"{base} - {reduction} x max(0, {sectors} - {free})"
 
 
 class FlightDutyPeriodRule:
@@ -17,12 +27,12 @@ class FlightDutyPeriodRule:
         report, release = shifted(day, ctx.delay_hours)
         actual = hrs(release - report)
         sectors = day.sectors
-        limit = fdp_limit(sectors)
+        limit = fdp_limit(sectors, ctx.world)
 
         steps = [
             ArithmeticStep(
                 "FDP limit",
-                f"13.0 - 0.5 x max(0, {sectors} - 2)",
+                _fdp_formula(ctx.world, sectors),
                 limit,
                 "h",
             ),
@@ -62,7 +72,7 @@ class FlightDutyPeriodRule:
         )
 
 
-def check_fdp(sectors: int, duty_hours: float) -> tuple[bool, float]:
+def check_fdp(sectors: int, duty_hours: float, world: World | None = None) -> tuple[bool, float]:
     """Standalone helper for the /rules calculator and delay simulations."""
-    limit = fdp_limit(sectors)
+    limit = fdp_limit(sectors, world)
     return duty_hours <= limit + EPS, limit

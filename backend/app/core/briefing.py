@@ -22,6 +22,7 @@ from __future__ import annotations
 from datetime import date
 
 from .duty import fdp_limit
+from .rule_params import rule_param
 from .rules.duty02 import MAX_DUTY_HOURS
 from .timeutil import at, fmt_dt, hrs
 from .windows import DUTY, window_sum
@@ -30,6 +31,7 @@ from .world import World
 
 def morning_briefing(world: World, *, on: date) -> dict:
     lines = []
+    max_duty_hours = rule_param(world, "RULE-DUTY-02", "max_duty_hours", MAX_DUTY_HOURS)
 
     for pairing in sorted(world.pairings, key=lambda p: (p.aircraft, p.days[0].date)):
         day = next((d for d in pairing.days if d.date == on), None)
@@ -41,11 +43,11 @@ def morning_briefing(world: World, *, on: date) -> dict:
 
         # 1. Legality headroom -------------------------------------------
         duty_hours = hrs(day.release_utc - day.report_utc)
-        limit = fdp_limit(day.sectors)
+        limit = fdp_limit(day.sectors, world)
         tightest = None
         for crew_id, role in pairing.crew:
             used = window_sum(world, crew_id, on, 7, DUTY)
-            margin = round(MAX_DUTY_HOURS - used, 2)
+            margin = round(max_duty_hours - used, 2)
             if tightest is None or margin < tightest["headroom_hours"]:
                 tightest = {
                     "crew_id": crew_id,

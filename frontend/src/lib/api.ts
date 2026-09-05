@@ -348,7 +348,8 @@ export const api = {
   crewDetail: (id: string) => get<any>(`/api/crew/${id}`),
   crewTimeline: (id: string, asOf?: string) => get<any>(`/api/crew/${id}/timeline${qs({ as_of: asOf })}`),
   pairing: (id: string) => get<any>(`/api/pairings/${id}`),
-  pairings: (params: { on?: string; aircraft?: string } = {}) => get<any>(`/api/pairings${qs(params)}`),
+  pairings: (params: { on?: string; aircraft?: string; crew_id?: string } = {}) =>
+    get<any>(`/api/pairings${qs(params)}`),
   flights: (params: Record<string, string | undefined>) => get<any>(`/api/flights${qs(params)}`),
   reserves: (params: { on?: string; base?: string; rank?: string; report_utc?: string } = {}) =>
     get<any>(`/api/reserves${qs(params)}`),

@@ -159,9 +159,9 @@ export default function ConsolePage() {
               dates={gantt.data.dates}
               breachPairings={breachPairings}
               selectedPairing={selectedPairing}
-              onSelectPairing={(id) => {
+              onSelectPairing={(id, crew) => {
                 setSelectedPairing(id)
-                navigate('/workbench', { state: { pairingId: id } })
+                navigate('/workbench', { state: { pairingId: id, crewId: preferredCrewId(crew) } })
               }}
             />
           )}
@@ -211,6 +211,16 @@ export default function ConsolePage() {
       </div>
     </div>
   )
+}
+
+const CREW_PREF = ['Captain', 'First Officer', 'Senior Cabin Crew']
+
+function preferredCrewId(crew: { crew_id: string; role: string }[]): string | undefined {
+  for (const role of CREW_PREF) {
+    const match = crew.find((c) => c.role === role)
+    if (match) return match.crew_id
+  }
+  return crew[0]?.crew_id
 }
 
 function AlertCard({

@@ -21,6 +21,7 @@ from ..core.joint import Opening, solve
 from ..core.notification import build_slots, render_fallback
 from ..core.ranking import impact_score
 from ..core.rotation import aircraft_delay, tail_rotation
+from ..core.rule_params import rule_param
 from ..core.rules.engine import check_cover
 from ..core.scenarios import certification_lapse, crew_opening, delay as delay_scenario
 from ..core.timeutil import parse_date, parse_dt
@@ -321,7 +322,10 @@ def compute_duty_period(
     day = pairing.days[day_index]
     scheduled = round((day.release_utc - day.report_utc).total_seconds() / 3600, 2)
     after = round(scheduled + delay_hours, 2)
-    limit = fdp_limit(day.sectors)
+    limit = fdp_limit(day.sectors, world)
+    base = rule_param(world, "RULE-FDP-01", "base_fdp_hours", 13.0)
+    free = rule_param(world, "RULE-FDP-01", "free_sectors", 2)
+    reduction = rule_param(world, "RULE-FDP-01", "reduction_per_extra_sector_hours", 0.5)
     return {
         "pairing_id": pairing_id,
         "date": day.date.isoformat(),
@@ -336,7 +340,7 @@ def compute_duty_period(
         "fdp_margin_hours": round(limit - after, 2),
         "within_limit": after <= limit + 1e-6,
         "rule": "RULE-FDP-01",
-        "formula": f"13.0 - 0.5 x max(0, {day.sectors} - 2) = {limit}",
+        "formula": f"{base} - {reduction} x max(0, {day.sectors} - {free}) = {limit}",
     }
 
 
@@ -422,7 +426,8 @@ def check_legality(
 )
 def check_rest(world: World, *, release_utc: Any, next_report_utc: Any = None) -> dict:
     release = _t(release_utc)
-    payload = q.rest_calculation(release)
+    min_rest_hours = rule_param(world, "RULE-REST-04", "min_rest_hours", 12.0)
+    payload = q.rest_calculation(release, min_rest_hours=min_rest_hours)
     if next_report_utc:
         nxt = _t(next_report_utc)
         rest = round((nxt - release).total_seconds() / 3600, 2)
@@ -430,8 +435,8 @@ def check_rest(world: World, *, release_utc: Any, next_report_utc: Any = None) -
             {
                 "proposed_report_utc": nxt.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "rest_hours": rest,
-                "legal": rest >= 12.0 - 1e-6,
-                "shortfall_hours": round(max(0.0, 12.0 - rest), 2),
+                "legal": rest >= min_rest_hours - 1e-6,
+                "shortfall_hours": round(max(0.0, min_rest_hours - rest), 2),
             }
         )
     return payload
@@ -458,8 +463,13 @@ def simulate_duty_window(
     if world.get_crew(crew_id) is None:
         return _missing("crew member", crew_id)
     on = _d(date)
-    duty_before = window_sum(world, crew_id, on, 7, DUTY)
-    flight_before = window_sum(world, crew_id, on, 28, FLIGHT)
+    duty_window_days = int(rule_param(world, "RULE-DUTY-02", "window_days", 7))
+    flight_window_days = int(rule_param(world, "RULE-FLT-03", "window_days", 28))
+    duty_limit = rule_param(world, "RULE-DUTY-02", "max_duty_hours", 60.0)
+    flight_limit = rule_param(world, "RULE-FLT-03", "max_flight_hours", 100.0)
+
+    duty_before = window_sum(world, crew_id, on, duty_window_days, DUTY)
+    flight_before = window_sum(world, crew_id, on, flight_window_days, FLIGHT)
     duty_after = round(duty_before + added_duty_hours, 2)
     flight_after = round(flight_before + added_flight_hours, 2)
     return {
@@ -467,13 +477,13 @@ def simulate_duty_window(
         "date": on.isoformat(),
         "duty_hours_7d_before": duty_before,
         "duty_hours_7d_after": duty_after,
-        "duty_limit": 60.0,
-        "duty_breach": duty_after > 60.0 + 1e-6,
-        "duty_excess_hours": round(max(0.0, duty_after - 60.0), 2),
+        "duty_limit": duty_limit,
+        "duty_breach": duty_after > duty_limit + 1e-6,
+        "duty_excess_hours": round(max(0.0, duty_after - duty_limit), 2),
         "flight_hours_28d_before": flight_before,
         "flight_hours_28d_after": flight_after,
-        "flight_limit": 100.0,
-        "flight_breach": flight_after > 100.0 + 1e-6,
+        "flight_limit": flight_limit,
+        "flight_breach": flight_after > flight_limit + 1e-6,
         "daily_breakdown": q.duty_clock(world, crew_id, on)["daily_breakdown_7d"],
     }
 
