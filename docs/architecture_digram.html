@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Boundary</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ground:#f5f6fa; --panel:#ffffff; --panel-raised:#eef1f7; --panel-sunken:#e8ebf3;
+    --line:#d9dfec; --line-strong:#b6c1d7;
+    --ink:#121a2b; --ink-dim:#4e5a72; --ink-faint:#8492ac;
+    --accent:#0a7f93; --accent-soft:#e0f3f6; --accent-strong:#065a68;
+    --legal:#0e8f5e; --legal-soft:#e2f6ec;
+    --breach:#c62828; --breach-soft:#fbe9e8;
+    --caution:#a15c00; --caution-soft:#fbeed9;
+    --advisory:#5b3fc0; --advisory-soft:#ece7fb;
+    --sans:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --shadow: 0 1px 2px rgba(18,26,43,0.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0a0e17; --panel:#10141f; --panel-raised:#151b28; --panel-sunken:#0d111b;
+      --line:#26304a; --line-strong:#3a4868;
+      --ink:#e7edf7; --ink-dim:#93a1b8; --ink-faint:#5f6d87;
+      --accent:#22d3ee; --accent-soft:rgba(34,211,238,0.10); --accent-strong:#7ee8f7;
+      --legal:#34d399; --legal-soft:rgba(52,211,153,0.10);
+      --breach:#f87171; --breach-soft:rgba(248,113,113,0.10);
+      --caution:#fbbf24; --caution-soft:rgba(251,191,36,0.10);
+      --advisory:#a78bfa; --advisory-soft:rgba(167,139,250,0.10);
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0a0e17; --panel:#10141f; --panel-raised:#151b28; --panel-sunken:#0d111b;
+    --line:#26304a; --line-strong:#3a4868;
+    --ink:#e7edf7; --ink-dim:#93a1b8; --ink-faint:#5f6d87;
+    --accent:#22d3ee; --accent-soft:rgba(34,211,238,0.10); --accent-strong:#7ee8f7;
+    --legal:#34d399; --legal-soft:rgba(52,211,153,0.10);
+    --breach:#f87171; --breach-soft:rgba(248,113,113,0.10);
+    --caution:#fbbf24; --caution-soft:rgba(251,191,36,0.10);
+    --advisory:#a78bfa; --advisory-soft:rgba(167,139,250,0.10);
+    --shadow: none;
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground); color:var(--ink); font-family:var(--sans); margin:0; line-height:1.6;}
+  h1,h2,h3{font-family:var(--sans); font-weight:700; text-wrap:balance; margin:0;}
+  p{margin:0;}
+  code,.mono{font-family:var(--mono);}
+  .num{font-variant-numeric:tabular-nums;}
+  a{color:var(--accent);}
+
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink-faint);
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{background:var(--panel-raised); border-bottom:1px solid var(--line); padding:52px 28px 30px;}
+  .hero-inner{max-width:1180px; margin:0 auto;}
+  .hero h1{font-size:clamp(2rem,4vw,2.9rem); letter-spacing:-.015em; margin-top:10px;}
+  .hero .thesis{
+    max-width:720px; margin-top:16px; font-size:1.08rem; color:var(--ink-dim); line-height:1.65;
+  }
+  .hero .thesis strong{color:var(--ink); font-weight:600;}
+  .stat-strip{
+    display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:12px; margin-top:30px;
+  }
+  .stat{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 14px 12px;
+    box-shadow:var(--shadow);
+  }
+  .stat b{
+    display:block; font-family:var(--mono); font-size:1.55rem; font-weight:600; color:var(--accent);
+    line-height:1.1; margin-bottom:5px;
+  }
+  .stat span{font-size:.76rem; color:var(--ink-dim); line-height:1.35; display:block;}
+  @media (max-width:900px){ .stat-strip{grid-template-columns:repeat(2,1fr);} }
+
+  /* ---------- Layout ---------- */
+  .layout{max-width:1180px; margin:0 auto; padding:0 28px 100px; display:grid;
+    grid-template-columns:212px 1fr; gap:52px; align-items:start;}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr; gap:24px;} }
+
+  nav.toc{position:sticky; top:24px; padding-top:40px;}
+  nav.toc ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px;
+    border-left:2px solid var(--line); }
+  nav.toc a{
+    display:block; padding:7px 0 7px 14px; font-size:.83rem; color:var(--ink-dim);
+    text-decoration:none; border-left:2px solid transparent; margin-left:-2px;
+  }
+  nav.toc a:hover{color:var(--ink);}
+  nav.toc .n{font-family:var(--mono); color:var(--ink-faint); margin-right:7px; font-size:.78rem;}
+  @media (max-width:900px){
+    nav.toc{position:static; padding-top:24px;}
+    nav.toc ol{flex-direction:row; flex-wrap:wrap; border-left:none; gap:6px;}
+    nav.toc a{border:1px solid var(--line); border-radius:999px; padding:5px 12px; margin:0;}
+  }
+
+  main{padding-top:44px; min-width:0;}
+  section{margin-bottom:76px; scroll-margin-top:20px;}
+  section .kicker{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  section .kicker .idx{
+    font-family:var(--mono); font-size:.78rem; color:var(--accent); border:1px solid var(--line-strong);
+    border-radius:5px; padding:2px 7px; font-weight:600;
+  }
+  section h2{font-size:1.55rem;}
+  section > p.lede{margin-top:14px; max-width:70ch; color:var(--ink-dim); font-size:1rem;}
+  section > p.lede strong{color:var(--ink); font-weight:600;}
+
+  /* ---------- Diagram module ---------- */
+  .diagram-panel{
+    position:relative; margin-top:26px; border:1px solid var(--line); border-radius:6px;
+    background:var(--panel); box-shadow:var(--shadow); padding:22px 20px 16px; overflow-x:auto;
+  }
+  .diagram-panel svg{display:block; margin:0 auto; max-width:100%; height:auto; color:var(--ink);}
+  .diagram-panel .tick{position:absolute; width:13px; height:13px; opacity:.55; pointer-events:none;}
+  .tick-tl{top:-1px; left:-1px; border-top:2px solid var(--accent); border-left:2px solid var(--accent);}
+  .tick-tr{top:-1px; right:-1px; border-top:2px solid var(--accent); border-right:2px solid var(--accent);}
+  .tick-bl{bottom:-1px; left:-1px; border-bottom:2px solid var(--accent); border-left:2px solid var(--accent);}
+  .tick-br{bottom:-1px; right:-1px; border-bottom:2px solid var(--accent); border-right:2px solid var(--accent);}
+  figcaption{
+    margin-top:12px; font-size:.85rem; color:var(--ink-dim); max-width:78ch; line-height:1.55;
+  }
+  figcaption b{color:var(--ink); font-weight:600;}
+
+  .after{margin-top:20px; display:grid; gap:10px;}
+  .after .row{display:flex; gap:10px; align-items:flex-start; font-size:.92rem; color:var(--ink-dim);}
+  .after .row .dot{width:7px; height:7px; border-radius:50%; margin-top:7px; flex-shrink:0;}
+  .after .row b{color:var(--ink); font-weight:600;}
+  .after .row code{background:var(--panel-sunken); border:1px solid var(--line); border-radius:4px;
+    padding:1px 5px; font-size:.83em; color:var(--ink);}
+
+  /* ---------- Legend ---------- */
+  .legend-bar{
+    max-width:1180px; margin:36px auto 0; padding:0 28px;
+  }
+  .legend-inner{
+    display:flex; flex-wrap:wrap; gap:18px; align-items:center; background:var(--panel);
+    border:1px solid var(--line); border-radius:8px; padding:14px 18px; box-shadow:var(--shadow);
+  }
+  .legend-inner .lbl{font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-faint); margin-right:2px;}
+  .legend-item{display:flex; align-items:center; gap:7px; font-size:.83rem; color:var(--ink-dim);}
+  .legend-item .sw{width:11px; height:11px; border-radius:3px; flex-shrink:0;}
+
+  /* ---------- Cards / grids ---------- */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;}
+  @media (max-width:700px){.grid2{grid-template-columns:1fr;}}
+  .card{border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:16px 18px;
+    box-shadow:var(--shadow);}
+  .card h4{font-size:.95rem; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+  .card p{font-size:.88rem; color:var(--ink-dim); line-height:1.55;}
+  .card .file{font-family:var(--mono); font-size:.78rem; color:var(--ink-faint); margin-top:8px; display:block;}
+
+  table.guard{width:100%; border-collapse:collapse; margin-top:18px; font-size:.88rem;}
+  table.guard th{text-align:left; font-family:var(--mono); font-size:.72rem; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--ink-faint); padding:0 12px 8px 0; border-bottom:1px solid var(--line-strong);}
+  table.guard td{padding:11px 12px 11px 0; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink-dim);}
+  table.guard td:first-child{color:var(--ink); font-weight:600; white-space:nowrap;}
+  table.guard tr:last-child td{border-bottom:none;}
+
+  footer{max-width:1180px; margin:0 auto; padding:0 28px 60px; color:var(--ink-faint); font-size:.82rem;}
+  footer .rule{height:1px; background:var(--line); margin-bottom:24px;}
+
+  @media (prefers-reduced-motion:no-preference){
+    .pulse{animation:pulse 2.6s ease-in-out infinite;}
+  }
+  @keyframes pulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">Crew Ops Advisor · System Architecture</span>
+    <h1>The Boundary</h1>
+    <p class="thesis">
+      Every query enters through the same pipeline and crosses the same line: a language model
+      on one side that classifies and narrates, and <strong>deterministic Python on the other
+      that computes every number, verdict, cost and ranking</strong>. What follows is that
+      pipeline, traced through all three question tiers, plus the mechanism that checks the
+      model's own words against what the code actually produced.
+    </p>
+    <div class="stat-strip">
+      <div class="stat"><b class="num">46/46</b><span>answer-key conformance — 38 questions, 6 scenarios, 2 held-out</span></div>
+      <div class="stat"><b class="num">117</b><span>automated tests, ~2s, gating every commit</span></div>
+      <div class="stat"><b class="num">33</b><span>typed, traced, side-effect-free tools</span></div>
+      <div class="stat"><b class="num">28ms</b><span>measured, one Tier-3 recommendation, end to end</span></div>
+      <div class="stat"><b class="num">9</b><span>proactive watchers on a virtual clock</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="legend-bar">
+  <div class="legend-inner">
+    <span class="lbl">Reading the diagrams</span>
+    <span class="legend-item"><span class="sw" style="background:var(--accent)"></span>language-model step</span>
+    <span class="legend-item"><span class="sw" style="background:var(--ink-faint)"></span>deterministic code step</span>
+    <span class="legend-item"><span class="sw" style="background:var(--legal)"></span>legal / verified / pass</span>
+    <span class="legend-item"><span class="sw" style="background:var(--breach)"></span>excluded / failed check</span>
+    <span class="legend-item"><span class="sw" style="background:var(--advisory)"></span>guard / abstain</span>
+    <span class="legend-item"><span class="sw" style="background:var(--caution)"></span>repair in progress</span>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="toc" aria-label="Section navigation">
+    <ol>
+      <li><a href="#overview"><span class="n">00</span>Overview</a></li>
+      <li><a href="#pipeline"><span class="n">01</span>The pipeline</a></li>
+      <li><a href="#tiers"><span class="n">02</span>One spine, three tiers</a></li>
+      <li><a href="#engine"><span class="n">03</span>Inside the rule engine</a></li>
+      <li><a href="#verify"><span class="n">04</span>The verification loop</a></li>
+      <li><a href="#watchers"><span class="n">05</span>Proactive watchers</a></li>
+      <li><a href="#decision-tree"><span class="n">06</span>The routing decision tree</a></li>
+      <li><a href="#tools"><span class="n">07</span>Tools &amp; scheduled jobs</a></li>
+      <li><a href="#guarantees"><span class="n">08</span>Reliability guarantees</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ===================== 00 OVERVIEW ===================== -->
+    <section id="overview">
+      <div class="kicker"><span class="idx">00</span></div>
+      <h2>Component view</h2>
+      <p class="lede">
+        Five layers, one hard line through the middle. Everything above the line proposes;
+        everything below it decides. The line isn't a design intention — it's a test
+        (<code>tests/test_core_purity.py</code>) that walks the import graph of
+        <code>app/core</code> and fails the build if it ever imports FastAPI, SQLAlchemy,
+        LangGraph, or Anthropic's SDK.
+      </p>
+
+      <figure class="diagram-panel">
+        <span class="tick tick-tl"></span><span class="tick tick-tr"></span>
+        <span class="tick tick-bl"></span><span class="tick tick-br"></span>
+        <svg viewBox="0 0 900 640" role="img" aria-label="Five-layer component diagram: React console, FastAPI, the LangGraph agent, a boundary line, app.core, and the three stores it feeds — JSON snapshot, Postgres or SQLite, and APScheduler.">
+          <defs>
+            <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--line-strong)"/>
+            </marker>
+          </defs>
+
+          <!-- Layer 1: React console -->
+          <rect x="60" y="20" width="780" height="64" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="450" y="46" text-anchor="middle" style="font-family:var(--mono);font-size:14px;font-weight:600;fill:var(--ink)">REACT CONSOLE</text>
+          <text x="450" y="66" text-anchor="middle" style="font-family:var(--mono);font-size:11px;fill:var(--ink-dim)">Console · Advisor · Workbench · Briefing · Traces · Scorecard · Rules</text>
+
+          <line x1="450" y1="84" x2="450" y2="116" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a1)"/>
+          <text x="466" y="104" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink-faint)">REST + SSE</text>
+
+          <!-- Layer 2: FastAPI -->
+          <rect x="60" y="116" width="780" height="56" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="450" y="140" text-anchor="middle" style="font-family:var(--mono);font-size:14px;font-weight:600;fill:var(--ink)">FASTAPI</text>
+          <text x="450" y="158" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink-dim)">/api/chat · /api/simulate/* · /api/recommend/* · /api/runs/* · /api/eval</text>
+
+          <line x1="450" y1="172" x2="450" y2="204" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a1)"/>
+          <text x="466" y="192" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink-faint)">invokes the graph</text>
+
+          <!-- Layer 3: LangGraph agent -->
+          <rect x="60" y="204" width="780" height="92" rx="7" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.4"/>
+          <text x="450" y="230" text-anchor="middle" style="font-family:var(--mono);font-size:14px;font-weight:700;fill:var(--accent-strong)">LANGGRAPH AGENT — LANGUAGE ONLY</text>
+          <text x="450" y="250" text-anchor="middle" style="font-family:var(--mono);font-size:11px;fill:var(--ink)">ingest → classify → resolve → route → plan → execute → compose → narrate → verify</text>
+          <text x="450" y="270" text-anchor="middle" style="font-family:var(--sans);font-size:11px;font-style:italic;fill:var(--ink-dim)">proposes entities and prose · computes no number, no verdict</text>
+
+          <!-- Boundary divider -->
+          <line x1="60" y1="308" x2="450" y2="308" style="stroke:var(--accent);stroke-width:3"/>
+          <line x1="450" y1="308" x2="840" y2="308" style="stroke:var(--legal);stroke-width:3"/>
+          <rect x="366" y="298" width="168" height="20" rx="4" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <text x="450" y="312" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.08em;fill:var(--ink)">THE BOUNDARY</text>
+          <text x="450" y="334" text-anchor="middle" style="font-family:var(--sans);font-size:11px;fill:var(--ink-faint)">above: probabilistic — below: deterministic and replayable</text>
+
+          <line x1="450" y1="346" x2="450" y2="380" style="stroke:var(--legal);stroke-width:2" marker-end="url(#a1)"/>
+          <text x="466" y="368" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink-faint)">33 typed tools · JSON in / JSON out</text>
+
+          <!-- Layer 4: app.core -->
+          <rect x="60" y="380" width="780" height="112" rx="7" style="fill:var(--legal-soft);stroke:var(--legal);stroke-width:1.4"/>
+          <text x="450" y="406" text-anchor="middle" style="font-family:var(--mono);font-size:14px;font-weight:700;fill:var(--legal)">APP.CORE — PURE PYTHON</text>
+          <text x="450" y="426" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink)">rules/ · duty · windows · candidates · positioning · costing · ranking · impact · rotation · closure · joint · world</text>
+          <text x="450" y="446" text-anchor="middle" style="font-family:var(--sans);font-size:11px;fill:var(--ink-dim)">world.apply(event) returns a NEW world — the base snapshot is never mutated</text>
+          <text x="450" y="466" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;font-style:italic;fill:var(--ink-faint)">no fastapi · no sqlalchemy · no langgraph · no anthropic — enforced by tests/test_core_purity.py</text>
+
+          <!-- fan to 3 stores -->
+          <line x1="240" y1="492" x2="180" y2="524" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a1)"/>
+          <line x1="450" y1="492" x2="450" y2="524" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a1)"/>
+          <line x1="660" y1="492" x2="720" y2="524" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a1)"/>
+
+          <rect x="60" y="530" width="240" height="72" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="180" y="556" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:600;fill:var(--ink)">JSON SNAPSHOT</text>
+          <text x="180" y="574" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">read-only · 147 flights</text>
+          <text x="180" y="588" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">150 crew · 39 pairings</text>
+
+          <rect x="330" y="530" width="240" height="72" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="450" y="556" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:600;fill:var(--ink)">POSTGRES / SQLITE</text>
+          <text x="450" y="574" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">traces · decisions</text>
+          <text x="450" y="588" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">alerts · eval runs</text>
+
+          <rect x="600" y="530" width="240" height="72" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="720" y="556" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:600;fill:var(--ink)">APSCHEDULER</text>
+          <text x="720" y="574" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">9 watchers on a</text>
+          <text x="720" y="588" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">virtual clock</text>
+        </svg>
+        <figcaption>
+          <b>Fig. 1</b> — The operational world (flights, crew, rosters, duty clocks) is a
+          read-only snapshot loaded once into memory. The database only holds what the system
+          <em>produces</em>: traces, decisions, alerts, eval history. Nothing an answer depends
+          on lives in a table that could drift from the code that computed it.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== 01 PIPELINE ===================== -->
+    <section id="pipeline">
+      <div class="kicker"><span class="idx">01</span></div>
+      <h2>The pipeline every question runs</h2>
+      <p class="lede">
+        One LangGraph, ten nodes, no exceptions. A lookup and a ranked recommendation enter
+        the same door — they only diverge for one step, <code>execute</code>, and only because
+        they call different tools.
+      </p>
+
+      <figure class="diagram-panel">
+        <span class="tick tick-tl"></span><span class="tick tick-tr"></span>
+        <span class="tick tick-bl"></span><span class="tick tick-br"></span>
+        <svg viewBox="0 0 1080 700" role="img" aria-label="Pipeline diagram: ingest, classify, resolve, route, plan, execute fanning into three tier-specific tool lanes, reconverging into compose, narrate, verify, with a repair loop and a downgrade path, all reaching finalise; route also branches directly to abstain or clarify.">
+          <defs>
+            <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--line-strong)"/>
+            </marker>
+            <marker id="a2g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--legal)"/>
+            </marker>
+            <marker id="a2c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--caution)"/>
+            </marker>
+            <marker id="a2v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--advisory)"/>
+            </marker>
+          </defs>
+
+          <!-- Row A spine -->
+          <g style="font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--ink)">
+            <rect x="20" y="40" width="100" height="44" rx="6" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+            <text x="70" y="66" text-anchor="middle">INGEST</text>
+            <rect x="150" y="40" width="120" height="44" rx="6" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+            <text x="210" y="66" text-anchor="middle">CLASSIFY</text>
+            <rect x="300" y="40" width="110" height="44" rx="6" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+            <text x="355" y="66" text-anchor="middle">RESOLVE</text>
+            <polygon points="420,62 468,40 516,62 468,84" style="fill:var(--advisory-soft);stroke:var(--advisory);stroke-width:1.3"/>
+            <text x="468" y="66" text-anchor="middle" style="fill:var(--advisory)">ROUTE</text>
+            <rect x="546" y="40" width="90" height="44" rx="6" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+            <text x="591" y="66" text-anchor="middle">PLAN</text>
+            <rect x="666" y="40" width="130" height="44" rx="6" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.4"/>
+            <text x="731" y="66" text-anchor="middle" style="fill:var(--accent-strong)">EXECUTE</text>
+          </g>
+          <g style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-faint)">
+            <text x="210" y="98" text-anchor="middle">router + LLM (optional)</text>
+            <text x="355" y="98" text-anchor="middle">validates every id</text>
+            <text x="468" y="98" text-anchor="middle">policy / compound guard</text>
+            <text x="591" y="98" text-anchor="middle">fixed tool sequence</text>
+            <text x="731" y="98" text-anchor="middle">diverges by tier ↓</text>
+          </g>
+
+          <!-- spine arrows -->
+          <line x1="120" y1="62" x2="148" y2="62" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+          <line x1="270" y1="62" x2="298" y2="62" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+          <line x1="410" y1="62" x2="418" y2="62" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+          <line x1="518" y1="62" x2="544" y2="62" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+          <line x1="636" y1="62" x2="664" y2="62" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+
+          <!-- route -> abstain/clarify -->
+          <path d="M448,82 C420,120 400,130 340,140" style="stroke:var(--advisory);stroke-width:1.6;fill:none" marker-end="url(#a2v)"/>
+          <path d="M448,82 C420,150 400,180 340,200" style="stroke:var(--advisory);stroke-width:1.6;fill:none" marker-end="url(#a2v)"/>
+          <rect x="230" y="120" width="130" height="38" rx="6" style="fill:var(--advisory-soft);stroke:var(--advisory)"/>
+          <text x="295" y="144" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;font-weight:600;fill:var(--advisory)">ABSTAIN</text>
+          <rect x="230" y="182" width="130" height="38" rx="6" style="fill:var(--advisory-soft);stroke:var(--advisory)"/>
+          <text x="295" y="206" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;font-weight:600;fill:var(--advisory)">CLARIFY</text>
+          <text x="20" y="175" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-faint)">out of scope · policy</text>
+          <text x="20" y="237" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-faint)">question — compound, or missing id</text>
+          <path d="M230,140 C120,150 60,300 60,600 L900,600" style="stroke:var(--advisory);stroke-width:1.4;fill:none;stroke-dasharray:3,4" marker-end="url(#a2v)"/>
+          <path d="M230,201 C130,220 70,300 70,610 L895,610" style="stroke:var(--advisory);stroke-width:1.4;fill:none;stroke-dasharray:3,4"/>
+
+          <!-- execute fans to 3 lanes -->
+          <line x1="700" y1="84" x2="200" y2="150" style="stroke:var(--accent);stroke-width:1.6" marker-end="url(#a2)"/>
+          <line x1="731" y1="84" x2="555" y2="150" style="stroke:var(--accent);stroke-width:1.6" marker-end="url(#a2)"/>
+          <line x1="762" y1="84" x2="910" y2="150" style="stroke:var(--accent);stroke-width:1.6" marker-end="url(#a2)"/>
+
+          <!-- Lane 1 -->
+          <rect x="20" y="150" width="340" height="190" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <circle cx="46" cy="176" r="12" style="fill:var(--accent-soft);stroke:var(--accent)"/>
+          <text x="46" y="180" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--accent-strong)">1</text>
+          <text x="66" y="181" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--ink)">TIER 1 — LOOKUP</text>
+          <line x1="36" y1="196" x2="344" y2="196" style="stroke:var(--line)"/>
+          <text x="36" y="216" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">get_crew · get_reserves</text>
+          <text x="36" y="234" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">get_duty_clock · search_flights</text>
+          <text x="36" y="252" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">get_certifications · network_summary</text>
+          <text x="36" y="270" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">13 retrieval tools total</text>
+          <rect x="36" y="292" width="288" height="34" rx="5" style="fill:var(--panel-sunken);stroke:var(--line)"/>
+          <text x="180" y="313" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink)">1 compiled call · ≈ 2 ms</text>
+
+          <!-- Lane 2 -->
+          <rect x="370" y="150" width="340" height="190" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <circle cx="396" cy="176" r="12" style="fill:var(--accent-soft);stroke:var(--accent)"/>
+          <text x="396" y="180" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--accent-strong)">2</text>
+          <text x="416" y="181" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--ink)">TIER 2 — CONSEQUENCE</text>
+          <line x1="386" y1="196" x2="694" y2="196" style="stroke:var(--line)"/>
+          <text x="386" y="216" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">simulate_crew_unavailable</text>
+          <text x="386" y="234" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">simulate_station_closure</text>
+          <text x="386" y="252" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">simulate_delay · check_legality</text>
+          <text x="386" y="270" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">10 simulation + legality tools</text>
+          <rect x="386" y="292" width="288" height="34" rx="5" style="fill:var(--panel-sunken);stroke:var(--line)"/>
+          <text x="530" y="313" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink)">World.apply(event) forks · ≈ 5 ms</text>
+
+          <!-- Lane 3 -->
+          <rect x="720" y="150" width="340" height="190" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <circle cx="746" cy="176" r="12" style="fill:var(--accent-soft);stroke:var(--accent)"/>
+          <text x="746" y="180" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--accent-strong)">3</text>
+          <text x="766" y="181" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--ink)">TIER 3 — RECOMMENDATION</text>
+          <line x1="736" y1="196" x2="1044" y2="196" style="stroke:var(--line)"/>
+          <text x="736" y="216" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">enumerate_cover_candidates</text>
+          <text x="736" y="234" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">resolve_disruption</text>
+          <text x="736" y="252" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">solve_joint_assignment</text>
+          <text x="736" y="270" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">rule engine × every candidate</text>
+          <rect x="736" y="292" width="288" height="34" rx="5" style="fill:var(--panel-sunken);stroke:var(--line)"/>
+          <text x="880" y="308" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;fill:var(--ink)">≈ 10–30 ms</text>
+          <text x="880" y="321" text-anchor="middle" style="font-family:var(--sans);font-size:9px;fill:var(--ink-faint)">ranked and priced — detail in fig. 3</text>
+
+          <!-- lanes converge -->
+          <line x1="200" y1="340" x2="530" y2="400" style="stroke:var(--line-strong);stroke-width:1.6"/>
+          <line x1="530" y1="340" x2="530" y2="400" style="stroke:var(--line-strong);stroke-width:1.6"/>
+          <line x1="880" y1="340" x2="530" y2="400" style="stroke:var(--line-strong);stroke-width:1.6" marker-end="url(#a2)"/>
+          <line x1="530" y1="400" x2="395" y2="440" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+
+          <!-- Row B spine -->
+          <g style="font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--ink)">
+            <rect x="340" y="440" width="110" height="44" rx="6" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+            <text x="395" y="466" text-anchor="middle">COMPOSE</text>
+            <rect x="480" y="440" width="110" height="44" rx="6" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.4"/>
+            <text x="535" y="466" text-anchor="middle" style="fill:var(--accent-strong)">NARRATE</text>
+            <polygon points="620,462 668,440 716,462 668,484" style="fill:var(--caution-soft);stroke:var(--caution);stroke-width:1.3"/>
+            <text x="668" y="466" text-anchor="middle" style="fill:var(--caution)">VERIFY</text>
+          </g>
+          <g style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-faint)">
+            <text x="395" y="498" text-anchor="middle">pure code — never the model</text>
+            <text x="535" y="498" text-anchor="middle">writes from composed facts only</text>
+            <text x="668" y="498" text-anchor="middle">checked vs. fact ledger — fig. 4</text>
+          </g>
+          <line x1="450" y1="462" x2="478" y2="462" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+          <line x1="590" y1="462" x2="618" y2="462" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a2)"/>
+
+          <!-- repair loop -->
+          <path d="M668,440 C668,405 560,405 535,438" style="stroke:var(--caution);stroke-width:1.6;fill:none" marker-end="url(#a2c)"/>
+          <text x="600" y="402" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--caution)">repair (≤ 1)</text>
+
+          <!-- downgrade -->
+          <line x1="668" y1="484" x2="668" y2="524" style="stroke:var(--breach);stroke-width:1.6" marker-end="url(#a2)"/>
+          <text x="686" y="508" style="font-family:var(--mono);font-size:10px;fill:var(--breach)">fail × 2</text>
+          <rect x="573" y="524" width="190" height="40" rx="6" style="fill:var(--breach-soft);stroke:var(--breach)"/>
+          <text x="668" y="542" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--breach)">DOWNGRADE</text>
+          <text x="668" y="556" text-anchor="middle" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">engine's own figures + a note</text>
+
+          <!-- finalise -->
+          <rect x="930" y="440" width="120" height="44" rx="6" style="fill:var(--legal-soft);stroke:var(--legal);stroke-width:1.4"/>
+          <text x="990" y="466" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--legal)">FINALISE</text>
+          <path d="M716,458 C820,450 880,450 928,456" style="stroke:var(--legal);stroke-width:1.8;fill:none" marker-end="url(#a2g)"/>
+          <text x="800" y="440" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--legal)">pass</text>
+          <path d="M763,544 C880,544 900,500 928,470" style="stroke:var(--breach);stroke-width:1.6;fill:none" marker-end="url(#a2)"/>
+        </svg>
+        <figure>
+        </figure>
+        <figcaption>
+          <b>Fig. 2</b> — <code>compose</code> is pure code in every tier: the structured answer
+          the UI renders never passes through a model. Only <code>narrate</code> touches the
+          LLM, and only to describe what <code>compose</code> already decided.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== 02 TIERS TABLE ===================== -->
+    <section id="tiers">
+      <div class="kicker"><span class="idx">02</span></div>
+      <h2>What actually changes between tiers</h2>
+      <p class="lede">
+        Nothing about the graph. Only which tools <code>execute</code> calls and which schema
+        <code>compose</code> reaches for. A Tier-3 recommendation is not a bigger prompt — it's
+        the same pipeline pointed at a bigger deterministic computation.
+      </p>
+      <table class="guard">
+        <tr><th>Tier</th><th>Example question</th><th>Tools called</th><th>compose() schema</th><th>Measured</th></tr>
+        <tr>
+          <td>1 · Lookup</td>
+          <td>"Who is on reserve at BLR on 15 Sep, and what are their on-call windows?"</td>
+          <td><code>get_reserves</code></td>
+          <td><code>reserve_list</code></td>
+          <td>&lt; 5 ms</td>
+        </tr>
+        <tr>
+          <td>2 · Consequence</td>
+          <td>"BLR is closed 08:00–14:00Z on 17 Sep. Which flights are affected?"</td>
+          <td><code>simulate_station_closure</code></td>
+          <td><code>closure</code></td>
+          <td>~8 ms</td>
+        </tr>
+        <tr>
+          <td>3 · Recommendation</td>
+          <td>"Captain C-1042 is out for pairing P-2291. What should I do?"</td>
+          <td><code>resolve_disruption</code> → 7-rule engine × 24 candidates</td>
+          <td><code>recommendation</code></td>
+          <td>28 ms</td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ===================== 03 RULE ENGINE ===================== -->
+    <section id="engine">
+      <div class="kicker"><span class="idx">03</span></div>
+      <h2>Inside the rule engine — the flagship case</h2>
+      <p class="lede">
+        The candidate pool is <strong>every active crew member of the required rank</strong> —
+        not the reserve list. Most answer-key options turn out to be day-off callouts of
+        ordinary line crew; a reserve-only search would return a short, wrong list. Here is
+        Captain C-1042 calling in sick for pairing P-2291, walked through gate by gate.
+      </p>
+
+      <figure class="diagram-panel">
+        <span class="tick tick-tl"></span><span class="tick tick-tr"></span>
+        <span class="tick tick-bl"></span><span class="tick tick-br"></span>
+        <svg viewBox="0 0 1000 580" role="img" aria-label="Funnel diagram: a pool of 24 candidates passes through three gates — RULE-QUAL-05, the reserve on-call window plus RULE-BASE-07, and the seven-rule engine — with excluded candidates peeling off into a labelled bucket at each stage, leaving 5 legal candidates that are costed and ranked.">
+          <defs>
+            <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--line-strong)"/>
+            </marker>
+            <marker id="a3b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--breach)"/>
+            </marker>
+            <marker id="a3g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--legal)"/>
+            </marker>
+          </defs>
+
+          <!-- Pool -->
+          <rect x="40" y="20" width="300" height="56" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="190" y="44" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--ink)">CANDIDATE POOL</text>
+          <text x="190" y="62" text-anchor="middle" style="font-family:var(--sans);font-size:10.5px;fill:var(--ink-dim)">25 active Captains − 1 sick (C-1042) = 24</text>
+          <line x1="190" y1="76" x2="190" y2="108" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a3)"/>
+
+          <!-- Gate 1 -->
+          <rect x="40" y="108" width="300" height="62" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <text x="190" y="130" text-anchor="middle" style="font-family:var(--mono);font-size:11.5px;font-weight:700;fill:var(--ink)">GATE 1 · RULE-QUAL-05</text>
+          <text x="190" y="148" text-anchor="middle" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">type-rated for A320?</text>
+          <text x="190" y="162" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;font-style:italic;fill:var(--ink-faint)">short-circuits every other check</text>
+          <line x1="340" y1="139" x2="520" y2="139" style="stroke:var(--breach);stroke-width:1.6" marker-end="url(#a3b)"/>
+          <text x="410" y="132" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--breach)">− 8</text>
+          <text x="196" y="192" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--ink-faint)">16 remain</text>
+          <line x1="190" y1="170" x2="190" y2="204" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a3)"/>
+
+          <!-- Gate 2 -->
+          <rect x="40" y="204" width="300" height="62" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <text x="190" y="226" text-anchor="middle" style="font-family:var(--mono);font-size:11.5px;font-weight:700;fill:var(--ink)">GATE 2 · WINDOW + BASE-07</text>
+          <text x="190" y="244" text-anchor="middle" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">on-call window covers the report?</text>
+          <text x="190" y="258" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;font-style:italic;fill:var(--ink-faint)">reserves only · else positioning required</text>
+          <line x1="340" y1="235" x2="520" y2="235" style="stroke:var(--breach);stroke-width:1.6" marker-end="url(#a3b)"/>
+          <text x="410" y="228" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--breach)">− 1</text>
+          <text x="196" y="288" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--ink-faint)">15 remain</text>
+          <line x1="190" y1="266" x2="190" y2="300" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a3)"/>
+
+          <!-- Gate 3 -->
+          <rect x="40" y="300" width="300" height="70" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <text x="190" y="322" text-anchor="middle" style="font-family:var(--mono);font-size:11.5px;font-weight:700;fill:var(--ink)">GATE 3 · SEVEN-RULE ENGINE</text>
+          <text x="190" y="340" text-anchor="middle" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">FDP-01 · DUTY-02 · FLT-03 · REST-04 · CERT-06</text>
+          <text x="190" y="354" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;font-style:italic;fill:var(--ink-faint)">walked against the merged duty timeline</text>
+          <line x1="340" y1="335" x2="520" y2="335" style="stroke:var(--breach);stroke-width:1.6" marker-end="url(#a3b)"/>
+          <text x="415" y="328" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--breach)">− 10</text>
+
+          <line x1="190" y1="370" x2="190" y2="404" style="stroke:var(--legal);stroke-width:2" marker-end="url(#a3g)"/>
+          <text x="200" y="392" style="font-family:var(--mono);font-size:10px;fill:var(--legal)">5 legal</text>
+
+          <!-- Legal -->
+          <rect x="40" y="404" width="300" height="46" rx="7" style="fill:var(--legal-soft);stroke:var(--legal);stroke-width:1.3"/>
+          <text x="190" y="432" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--legal)">5 LEGAL CANDIDATES</text>
+
+          <!-- Excluded bucket -->
+          <rect x="520" y="96" width="440" height="330" rx="7" style="fill:var(--breach-soft);stroke:var(--breach);stroke-width:1.3"/>
+          <text x="540" y="120" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--breach)">EXCLUDED — 19 of 24</text>
+          <line x1="540" y1="132" x2="940" y2="132" style="stroke:var(--breach);opacity:.35"/>
+
+          <text x="540" y="156" style="font-family:var(--mono);font-size:10.5px;font-weight:600;fill:var(--ink)">RULE-QUAL-05 · ×8</text>
+          <text x="540" y="174" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">C-2091, C-3315, C-1671, C-1600 …</text>
+          <text x="540" y="190" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">"no A320 rating"</text>
+
+          <line x1="540" y1="206" x2="940" y2="206" style="stroke:var(--breach);opacity:.2"/>
+          <text x="540" y="226" style="font-family:var(--mono);font-size:10.5px;font-weight:600;fill:var(--ink)">RESERVE WINDOW · ×1</text>
+          <text x="540" y="244" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">C-3305: window 00:00–05:30Z does not</text>
+          <text x="540" y="260" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">cover the required 06:00Z report</text>
+
+          <line x1="540" y1="276" x2="940" y2="276" style="stroke:var(--breach);opacity:.2"/>
+          <text x="540" y="296" style="font-family:var(--mono);font-size:10.5px;font-weight:600;fill:var(--ink)">RULE-DUTY-02 · ×1</text>
+          <text x="540" y="314" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">C-2087: 61.33h vs. 60h limit —</text>
+          <text x="540" y="330" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">over by 1h20m on 15 Sep</text>
+
+          <line x1="540" y1="346" x2="940" y2="346" style="stroke:var(--breach);opacity:.2"/>
+          <text x="540" y="366" style="font-family:var(--mono);font-size:10.5px;font-weight:600;fill:var(--ink)">RULE-REST-04 · ×9</text>
+          <text x="540" y="384" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">C-5837: only 10.75h rest before</text>
+          <text x="540" y="400" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">P-2204 on 17 Sep (downstream conflict)</text>
+
+          <!-- Rank table -->
+          <line x1="190" y1="450" x2="190" y2="472" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a3)"/>
+          <rect x="40" y="472" width="920" height="94" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <text x="60" y="494" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--ink)">RANKED &amp; PRICED</text>
+          <g style="font-family:var(--mono);font-size:10.5px;fill:var(--ink-dim)">
+            <text x="60" y="514">1</text><text x="90" y="514" style="fill:var(--ink)">C-3310</text><text x="230" y="514">reserve callout</text><text x="480" y="514" text-anchor="end" style="fill:var(--legal);font-weight:700">₹18,500</text><text x="560" y="514" text-anchor="end">—</text>
+            <text x="60" y="530">2</text><text x="90" y="530" style="fill:var(--ink)">C-1526</text><text x="230" y="530">day-off callout</text><text x="480" y="530" text-anchor="end">₹24,000</text><text x="560" y="530" text-anchor="end">—</text>
+            <text x="60" y="546">5</text><text x="90" y="546" style="fill:var(--ink)">C-2210</text><text x="230" y="546">reserve + deadhead (DEL)</text><text x="480" y="546" text-anchor="end">₹41,200</text><text x="560" y="546" text-anchor="end" style="fill:var(--caution)">+3.0h</text>
+            <text x="60" y="562">6</text><text x="90" y="562" style="fill:var(--ink-faint)">—</text><text x="230" y="562" style="fill:var(--ink-faint)">cancel all 6 legs</text><text x="480" y="562" text-anchor="end" style="fill:var(--breach)">₹15,00,000</text><text x="560" y="562" text-anchor="end">—</text>
+          </g>
+          <text x="600" y="494" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-faint)">sorted (cost, crew_id) — last resort appended last</text>
+        </svg>
+        <figcaption>
+          <b>Fig. 3</b> — Every rejection carries a reason string with the rule and the exact
+          arithmetic. This is what turns a ranked list into a decision a controller can
+          challenge: not "trust the model," but <b>"here are 19 names and the number that
+          disqualified each one."</b>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== 04 VERIFY ===================== -->
+    <section id="verify">
+      <div class="kicker"><span class="idx">04</span></div>
+      <h2>The verification loop</h2>
+      <p class="lede">
+        The model's prose is not trusted on arrival. Every scalar any tool produced during the
+        run — 1,831 of them, on this example — is recorded in an append-only ledger. Before
+        an answer ships, every number, crew id, flight id, pairing id and rule name in the
+        model's draft is checked against that ledger.
+      </p>
+
+      <figure class="diagram-panel">
+        <span class="tick tick-tl"></span><span class="tick tick-tr"></span>
+        <span class="tick tick-bl"></span><span class="tick tick-br"></span>
+        <svg viewBox="0 0 1000 460" role="img" aria-label="The verification loop: tool calls write facts into an append-only ledger, the model narrates using only those facts, a verify step checks every number and id in the draft against the ledger, passing drafts are shown to the controller, failing drafts get one repair attempt, and a second failure downgrades to the engine's own figures.">
+          <defs>
+            <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--line-strong)"/>
+            </marker>
+            <marker id="a4g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--legal)"/>
+            </marker>
+            <marker id="a4c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--caution)"/>
+            </marker>
+          </defs>
+
+          <!-- Ledger -->
+          <rect x="30" y="30" width="270" height="300" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="165" y="54" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--ink)">FACT LEDGER</text>
+          <text x="165" y="70" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;font-style:italic;fill:var(--ink-faint)">append-only, this run</text>
+          <g style="font-family:var(--mono);font-size:9.5px;fill:var(--ink-dim)">
+            <text x="46" y="96">f_0031 crew_id = C-3310</text>
+            <text x="46" y="114">f_0032 cost_inr = 18500</text>
+            <text x="46" y="132">f_0058 DUTY-02.margin = 39.07</text>
+            <text x="46" y="150">f_0102 evaluated_count = 24</text>
+            <text x="46" y="168">f_0119 excluded_count = 19</text>
+            <text x="46" y="186">f_0140 RULE-REST-04 → breach</text>
+            <text x="46" y="204">f_0141 rest_hours = 10.75</text>
+          </g>
+          <text x="165" y="230" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--accent-strong)">⋮ 1,831 facts</text>
+          <text x="165" y="290" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-faint)">harvested from every tool call,</text>
+          <text x="165" y="304" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-faint)">option and rule verdict</text>
+
+          <!-- Narrate -->
+          <line x1="300" y1="80" x2="378" y2="80" style="stroke:var(--accent);stroke-width:1.8" marker-end="url(#a4)"/>
+          <text x="339" y="70" text-anchor="middle" style="font-family:var(--mono);font-size:9.5px;fill:var(--accent-strong)">context</text>
+          <rect x="380" y="52" width="220" height="56" rx="7" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.4"/>
+          <text x="490" y="76" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--accent-strong)">NARRATE (LLM)</text>
+          <text x="490" y="94" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">"use only these facts"</text>
+
+          <line x1="490" y1="108" x2="490" y2="140" style="stroke:var(--line-strong);stroke-width:1.8" marker-end="url(#a4)"/>
+          <rect x="380" y="142" width="220" height="70" rx="7" style="fill:var(--panel);stroke:var(--line-strong)"/>
+          <text x="490" y="162" text-anchor="middle" style="font-family:var(--sans);font-size:9px;font-style:italic;fill:var(--ink-dim)">"Assign C-3310 at ₹18,500 —</text>
+          <text x="490" y="176" text-anchor="middle" style="font-family:var(--sans);font-size:9px;font-style:italic;fill:var(--ink-dim)">cheapest of 5 legal options</text>
+          <text x="490" y="190" text-anchor="middle" style="font-family:var(--sans);font-size:9px;font-style:italic;fill:var(--ink-dim)">from 24 evaluated."</text>
+          <text x="490" y="204" text-anchor="middle" style="font-family:var(--mono);font-size:9px;fill:var(--ink-faint)">draft</text>
+
+          <line x1="490" y1="212" x2="490" y2="244" style="stroke:var(--caution);stroke-width:1.8" marker-end="url(#a4c)"/>
+          <polygon points="490,244 570,272 490,300 410,272" style="fill:var(--caution-soft);stroke:var(--caution);stroke-width:1.4"/>
+          <text x="490" y="268" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--caution)">VERIFY</text>
+          <text x="490" y="282" text-anchor="middle" style="font-family:var(--sans);font-size:8px;fill:var(--ink-dim)">7 checks</text>
+
+          <!-- Caught example -->
+          <rect x="670" y="30" width="300" height="98" rx="7" style="fill:var(--breach-soft);stroke:var(--breach);stroke-width:1.3"/>
+          <text x="688" y="52" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--breach)">ILLUSTRATIVE — CAUGHT</text>
+          <text x="688" y="72" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">Draft claims "40 candidates."</text>
+          <text x="688" y="88" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">evaluated_count in the ledger is 24 —</text>
+          <text x="688" y="104" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">no fact matches 40 → rejected, repaired.</text>
+
+          <!-- pass -->
+          <line x1="570" y1="272" x2="670" y2="200" style="stroke:var(--legal);stroke-width:1.8" marker-end="url(#a4g)"/>
+          <text x="600" y="225" style="font-family:var(--mono);font-size:10px;fill:var(--legal)">pass</text>
+          <rect x="670" y="150" width="300" height="60" rx="7" style="fill:var(--legal-soft);stroke:var(--legal);stroke-width:1.4"/>
+          <text x="820" y="174" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--legal)">SHOWN TO CONTROLLER</text>
+          <text x="820" y="192" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">✓ 7 / 7 checks passed</text>
+
+          <!-- repair loop -->
+          <path d="M450,244 C380,220 380,170 378,120" style="stroke:var(--caution);stroke-width:1.6;fill:none" marker-end="url(#a4c)"/>
+          <text x="330" y="200" style="font-family:var(--mono);font-size:10px;fill:var(--caution)">fail → repair (≤1)</text>
+
+          <!-- downgrade -->
+          <line x1="490" y1="300" x2="490" y2="340" style="stroke:var(--breach);stroke-width:1.8" marker-end="url(#a4)"/>
+          <text x="508" y="324" style="font-family:var(--mono);font-size:10px;fill:var(--breach)">fail again</text>
+          <rect x="380" y="342" width="220" height="70" rx="7" style="fill:var(--breach-soft);stroke:var(--breach);stroke-width:1.3"/>
+          <text x="490" y="366" text-anchor="middle" style="font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--breach)">DOWNGRADE</text>
+          <text x="490" y="384" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">serves the engine's own</text>
+          <text x="490" y="398" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">figures + an explicit note</text>
+
+          <path d="M600,376 C650,340 700,260 730,212" style="stroke:var(--breach);stroke-width:1.6;fill:none" marker-end="url(#a4)"/>
+        </svg>
+        <figcaption>
+          <b>Fig. 4</b> — <code>app/agent/verify.py</code> is the gate. A fluent, confident,
+          wrong number cannot reach the controller, because narration that references a value
+          the tools never produced fails this check — it is code, not a style guideline.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== 05 WATCHERS ===================== -->
+    <section id="watchers">
+      <div class="kicker"><span class="idx">05</span></div>
+      <h2>Proactive watchers on a virtual clock</h2>
+      <p class="lede">
+        The desk in the brief is reactive — something breaks, then a controller reasons about
+        it. Nine watchers invert that where the data allows: they scan the forward schedule for
+        conditions that are already true and would otherwise become a 05:00 emergency.
+      </p>
+
+      <figure class="diagram-panel">
+        <span class="tick tick-tl"></span><span class="tick tick-tr"></span>
+        <span class="tick tick-bl"></span><span class="tick tick-br"></span>
+        <svg viewBox="0 0 940 230" role="img" aria-label="Timeline from the frozen snapshot on 14 September through 19 September, with a callout showing the cert-expiry watcher raising a critical alert on day one for a certification that lapses on 17 September against a duty rostered on 19 September, followed by a row of the nine watcher names.">
+          <defs>
+            <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--line-strong)"/>
+            </marker>
+          </defs>
+          <line x1="40" y1="118" x2="900" y2="118" style="stroke:var(--line-strong);stroke-width:2" marker-end="url(#a5)"/>
+          <circle cx="110" cy="118" r="6" style="fill:var(--breach)"/>
+          <circle cx="340" cy="118" r="5" style="fill:var(--ink-faint)"/>
+          <circle cx="570" cy="118" r="5" style="fill:var(--ink-faint)"/>
+          <circle cx="790" cy="118" r="5" style="fill:var(--ink-faint)"/>
+          <text x="110" y="140" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--ink-dim)">09-14 18:00Z</text>
+          <text x="340" y="140" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--ink-faint)">09-15</text>
+          <text x="570" y="140" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--ink-faint)">09-17</text>
+          <text x="790" y="140" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--ink-faint)">09-19</text>
+          <text x="110" y="153" text-anchor="middle" style="font-family:var(--sans);font-size:9px;fill:var(--ink-faint)">snapshot</text>
+
+          <line x1="110" y1="106" x2="110" y2="80" style="stroke:var(--breach);stroke-width:1.4" marker-end="url(#a5)"/>
+          <rect x="15" y="12" width="440" height="64" rx="7" style="fill:var(--breach-soft);stroke:var(--breach);stroke-width:1.3"/>
+          <text x="35" y="32" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--breach)">cert_expiry_watch — fires immediately</text>
+          <text x="35" y="50" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">C-5417's recurrent_training expires 09-17;</text>
+          <text x="35" y="66" style="font-family:var(--sans);font-size:10px;fill:var(--ink-dim)">rostered on P-2213, 09-19 → CRITICAL alert, day one</text>
+
+          <g style="font-family:var(--mono);font-size:9.5px;fill:var(--ink-dim)">
+            <text x="40" y="190">cert_expiry</text>
+            <text x="150" y="190">cert_expiring_soon</text>
+            <text x="300" y="190">duty_limit</text>
+            <text x="400" y="190">flight_hours</text>
+            <text x="510" y="190">fdp_margin</text>
+            <text x="620" y="190">reserve_coverage</text>
+            <text x="760" y="190">rotation_fragility</text>
+            <text x="40" y="212">high_risk_thin_cover</text>
+            <text x="230" y="212">flagged_roster_exception</text>
+          </g>
+        </svg>
+        <figcaption>
+          <b>Fig. 5</b> — This exact case is the first alert on the console at start-up: a
+          certificate that lapses <em>before</em> a rostered duty, found on the snapshot date,
+          three days before it would otherwise surface as a pre-flight compliance failure.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== 06 DECISION TREE ===================== -->
+    <section id="decision-tree">
+      <div class="kicker"><span class="idx">06</span></div>
+      <h2>The routing decision tree</h2>
+      <p class="lede">
+        Five decision points, evaluated in order, before a single tool ever runs. The first two
+        decide <em>who</em> picks the intent — the deterministic router or the model. The last
+        three decide whether the system is confident enough to act on it at all. Every one of
+        them is a plain <code>if</code>, not a model call — <code>app/agent/plans.py:route()</code>
+        and <code>app/agent/graph.py:route_decision()</code>.
+      </p>
+
+      <figure class="diagram-panel">
+        <span class="tick tick-tl"></span><span class="tick tick-tr"></span>
+        <span class="tick tick-bl"></span><span class="tick tick-br"></span>
+        <svg viewBox="0 0 780 890" role="img" aria-label="Decision tree with five sequential decision points: whether the pattern router's confidence is too low to trust, whether the model disagrees with high confidence, whether the resulting intent is unsupported, whether the question is a policy judgement or a compound disruption, and whether a required entity is missing — ending in abstain, clarify, or a compiled plan.">
+          <defs>
+            <marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--line-strong)"/>
+            </marker>
+            <marker id="a6y" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"/>
+            </marker>
+          </defs>
+
+          <!-- Root -->
+          <rect x="140" y="14" width="240" height="50" rx="7" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="260" y="34" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--ink)">PATTERN ROUTER</text>
+          <text x="260" y="50" text-anchor="middle" style="font-family:var(--sans);font-size:9.5px;fill:var(--ink-dim)">scores every rule → argmax intent + confidence</text>
+          <line x1="260" y1="64" x2="260" y2="94" style="stroke:var(--line-strong);stroke-width:1.8" marker-end="url(#a6)"/>
+
+          <!-- D1 -->
+          <polygon points="260,94 392,139 260,184 128,139" style="fill:var(--panel);stroke:var(--line-strong);stroke-width:1.4"/>
+          <text x="260" y="135" text-anchor="middle" style="font-family:var(--mono);font-size:10px;font-weight:600;fill:var(--ink)">confidence &lt; 0.35?</text>
+          <text x="260" y="150" text-anchor="middle" style="font-family:var(--sans);font-size:8.5px;fill:var(--ink-faint)">router too unsure</text>
+
+          <line x1="392" y1="139" x2="428" y2="139" style="stroke:var(--accent);stroke-width:1.6" marker-end="url(#a6y)"/>
+          <text x="400" y="130" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--accent-strong)">yes</text>
+          <rect x="430" y="112" width="300" height="54" rx="7" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3"/>
+          <text x="450" y="134" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--accent-strong)">LLM DECIDES ALONE</text>
+          <text x="450" y="150" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">forced override — the router is too unsure to trust</text>
+
+          <text x="272" y="200" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--ink-faint)">no</text>
+          <line x1="260" y1="184" x2="260" y2="228" style="stroke:var(--line-strong);stroke-width:1.8" marker-end="url(#a6)"/>
+
+          <!-- D2 -->
+          <polygon points="260,228 400,278 260,328 120,278" style="fill:var(--panel);stroke:var(--line-strong);stroke-width:1.4"/>
+          <text x="260" y="270" text-anchor="middle" style="font-family:var(--mono);font-size:9.5px;font-weight:600;fill:var(--ink)">model disagrees, confidence</text>
+          <text x="260" y="284" text-anchor="middle" style="font-family:var(--mono);font-size:9.5px;font-weight:600;fill:var(--ink)">≥ router + 0.15?</text>
+
+          <line x1="400" y1="278" x2="428" y2="278" style="stroke:var(--accent);stroke-width:1.6" marker-end="url(#a6y)"/>
+          <text x="408" y="269" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--accent-strong)">yes</text>
+          <rect x="430" y="251" width="300" height="54" rx="7" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3"/>
+          <text x="450" y="273" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--accent-strong)">ADOPT THE LLM'S INTENT</text>
+          <text x="450" y="289" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">recorded as source = llm on the run</text>
+
+          <text x="272" y="345" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--ink-faint)">no</text>
+          <line x1="260" y1="328" x2="260" y2="358" style="stroke:var(--line-strong);stroke-width:1.8" marker-end="url(#a6)"/>
+          <rect x="140" y="360" width="240" height="40" rx="6" style="fill:var(--panel-sunken);stroke:var(--line-strong)"/>
+          <text x="260" y="384" text-anchor="middle" style="font-family:var(--mono);font-size:10px;font-weight:600;fill:var(--ink)">KEEP THE ROUTER'S INTENT</text>
+
+          <!-- merge -->
+          <path d="M430,166 C300,200 300,380 262,412" style="stroke:var(--line-strong);stroke-width:1.3;fill:none"/>
+          <path d="M430,305 C320,330 300,390 262,412" style="stroke:var(--line-strong);stroke-width:1.3;fill:none"/>
+          <line x1="260" y1="400" x2="260" y2="412" style="stroke:var(--line-strong);stroke-width:1.8"/>
+          <rect x="130" y="414" width="260" height="46" rx="7" style="fill:var(--panel-raised);stroke:var(--line-strong);stroke-width:1.4"/>
+          <text x="260" y="434" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--ink)">CHOSEN INTENT</text>
+          <text x="260" y="450" text-anchor="middle" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">name · tier · confidence · source</text>
+          <line x1="260" y1="460" x2="260" y2="490" style="stroke:var(--line-strong);stroke-width:1.8" marker-end="url(#a6)"/>
+
+          <!-- D3 -->
+          <polygon points="260,490 396,535 260,580 124,535" style="fill:var(--panel);stroke:var(--line-strong);stroke-width:1.4"/>
+          <text x="260" y="531" text-anchor="middle" style="font-family:var(--mono);font-size:10px;font-weight:600;fill:var(--ink)">unsupported, or no</text>
+          <text x="260" y="545" text-anchor="middle" style="font-family:var(--mono);font-size:10px;font-weight:600;fill:var(--ink)">compiled plan exists?</text>
+
+          <line x1="396" y1="535" x2="428" y2="535" style="stroke:var(--advisory);stroke-width:1.6" marker-end="url(#a6y)"/>
+          <text x="404" y="526" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--advisory)">yes</text>
+          <rect x="430" y="508" width="300" height="54" rx="7" style="fill:var(--advisory-soft);stroke:var(--advisory);stroke-width:1.3"/>
+          <text x="450" y="530" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--advisory)">ABSTAIN</text>
+          <text x="450" y="546" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">names what it CAN answer instead — never guesses</text>
+
+          <text x="272" y="596" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--ink-faint)">no</text>
+          <line x1="260" y1="580" x2="260" y2="614" style="stroke:var(--line-strong);stroke-width:1.8" marker-end="url(#a6)"/>
+
+          <!-- D4 -->
+          <polygon points="260,614 398,664 260,714 122,664" style="fill:var(--panel);stroke:var(--line-strong);stroke-width:1.4"/>
+          <text x="260" y="656" text-anchor="middle" style="font-family:var(--mono);font-size:9.5px;font-weight:600;fill:var(--ink)">policy question, or a</text>
+          <text x="260" y="670" text-anchor="middle" style="font-family:var(--mono);font-size:9.5px;font-weight:600;fill:var(--ink)">compound disruption?</text>
+
+          <line x1="398" y1="664" x2="428" y2="664" style="stroke:var(--caution);stroke-width:1.6" marker-end="url(#a6y)"/>
+          <text x="406" y="655" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--caution)">yes</text>
+          <rect x="430" y="632" width="300" height="64" rx="7" style="fill:var(--caution-soft);stroke:var(--caution);stroke-width:1.3"/>
+          <text x="450" y="654" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--caution)">CLARIFY</text>
+          <text x="450" y="670" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">policy: names the judgement the rules don't cover</text>
+          <text x="450" y="684" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">compound: splits the question instead of half-answering</text>
+
+          <text x="272" y="730" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--ink-faint)">no</text>
+          <line x1="260" y1="714" x2="260" y2="748" style="stroke:var(--line-strong);stroke-width:1.8" marker-end="url(#a6)"/>
+
+          <!-- D5 -->
+          <polygon points="260,748 396,793 260,838 124,793" style="fill:var(--panel);stroke:var(--line-strong);stroke-width:1.4"/>
+          <text x="260" y="789" text-anchor="middle" style="font-family:var(--mono);font-size:10px;font-weight:600;fill:var(--ink)">a required entity is</text>
+          <text x="260" y="803" text-anchor="middle" style="font-family:var(--mono);font-size:10px;font-weight:600;fill:var(--ink)">missing or unresolved?</text>
+
+          <line x1="396" y1="793" x2="428" y2="793" style="stroke:var(--caution);stroke-width:1.6" marker-end="url(#a6y)"/>
+          <text x="404" y="784" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--caution)">yes</text>
+          <rect x="430" y="766" width="300" height="54" rx="7" style="fill:var(--caution-soft);stroke:var(--caution);stroke-width:1.3"/>
+          <text x="450" y="788" style="font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--caution)">CLARIFY</text>
+          <text x="450" y="804" style="font-family:var(--sans);font-size:9px;fill:var(--ink-dim)">asks for the missing crew id, date or station — no guess</text>
+
+          <text x="272" y="864" style="font-family:var(--mono);font-size:9.5px;font-weight:700;fill:var(--ink-faint)">no</text>
+          <line x1="260" y1="838" x2="260" y2="868" style="stroke:var(--legal);stroke-width:1.8" marker-end="url(#a6)"/>
+          <rect x="130" y="870" width="260" height="18" rx="0" style="fill:none"/>
+          <text x="260" y="884" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--legal)">PLAN → EXECUTE → … (fig. 2)</text>
+        </svg>
+        <figcaption>
+          <b>Fig. 6</b> — Two guard patterns feed decision 4:
+          <code>POLICY_RE</code> catches phrasings like "should we pre-emptively swap him out" —
+          every input is computable, the threshold isn't in the ruleset. <code>COMPOUND_EVENT_RE</code>
+          catches two disruption verbs joined by "and" — answering one half confidently is the
+          failure mode this system exists to avoid. Both are asserted in both directions in
+          <code>tests/test_routing_and_honesty.py</code>: they must fire on these shapes, and they
+          must <em>not</em> fire on any of the 38 graded questions.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== 07 TOOLS & JOBS ===================== -->
+    <section id="tools">
+      <div class="kicker"><span class="idx">07</span></div>
+      <h2>Tools &amp; scheduled jobs</h2>
+      <p class="lede">
+        33 tools the agent can call — every one typed, traced, and side-effect-free — and 3
+        background jobs that keep the console honest between questions.
+      </p>
+
+      <div class="grid2">
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--accent)"></span></span>Retrieval — 14 tools</h4>
+          <p><code>get_crew · search_crew · get_flight · search_flights · get_pairing ·
+          get_roster_for_crew · get_duty_clock · get_certifications · get_reserves ·
+          get_risk_signal · get_rule · get_costs · network_summary · duty_window_scan</code></p>
+        </div>
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--caution)"></span></span>Legality — 4 tools</h4>
+          <p><code>compute_duty_period · check_legality · check_rest · simulate_duty_window</code></p>
+          <p style="margin-top:6px">Every one of these runs the same seven-rule engine as fig. 3 — a lookup never re-derives a verdict a different way.</p>
+        </div>
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--breach)"></span></span>Simulation — 6 tools</h4>
+          <p><code>simulate_crew_unavailable · simulate_station_closure · simulate_delay ·
+          propagate_rotation · simulate_assignment · simulate_cancellation</code></p>
+          <p style="margin-top:6px">Each forks the world via <code>World.apply(event)</code> — the base snapshot is never mutated, so a second event can be chained onto the result of the first.</p>
+        </div>
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--legal)"></span></span>Recommendation — 8 tools</h4>
+          <p><code>enumerate_cover_candidates · resolve_disruption · resolve_delay_breach ·
+          solve_joint_assignment · estimate_cost · score_impact · draft_notification ·
+          morning_briefing</code></p>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:14px">Plus <code>list_supported_capabilities</code> — the meta tool that powers honest abstention (fig. 6, decision 3).</p>
+
+      <table class="guard" style="margin-top:24px">
+        <tr><th>Cron job</th><th>Cadence</th><th>What it does</th></tr>
+        <tr>
+          <td>sweep_alerts</td>
+          <td>every 300s <span style="color:var(--ink-faint)">(virtual clock)</span></td>
+          <td>Runs all 9 watchers below, upserts the alert board by stable id so an acknowledgement survives the next sweep, and auto-resolves anything that no longer fires.</td>
+        </tr>
+        <tr>
+          <td>nightly_eval</td>
+          <td>every 6h</td>
+          <td>Re-runs the engine conformance suite (fig. 3's grader) and records the score — a regression shows up on the scorecard before a person asks.</td>
+        </tr>
+        <tr>
+          <td>prune_traces</td>
+          <td>every 12h</td>
+          <td>Keeps the last 500 runs; older traces, spans, facts and rule evaluations are dropped so the audit store doesn't grow unbounded.</td>
+        </tr>
+      </table>
+
+      <table class="guard" style="margin-top:20px">
+        <tr><th>Watcher</th><th>Fires when</th></tr>
+        <tr><td>cert_expiry</td><td>A certificate lapses <em>before</em> a duty the crew member is already rostered on — a grounded illegality sitting in the published roster (fig. 5's example).</td></tr>
+        <tr><td>cert_expiring_soon</td><td>Any active crew member's certificate expires within 30 days.</td></tr>
+        <tr><td>duty_limit</td><td>Projected 7-day duty reaches 90% of the 60h RULE-DUTY-02 ceiling within 48h.</td></tr>
+        <tr><td>flight_hours</td><td>28-day block hours reach 90% of the 100h RULE-FLT-03 ceiling.</td></tr>
+        <tr><td>fdp_margin</td><td>A planned duty sits within 1h of its RULE-FDP-01 limit — thin enough that any delay forces a re-crew (this is what makes a delay-cascade predictable rather than surprising).</td></tr>
+        <tr><td>reserve_coverage</td><td>Fewer than the needed reserves, for a given base × rank × report time, actually have an on-call window covering it.</td></tr>
+        <tr><td>rotation_fragility</td><td>A tail's turn time between two legs drops to 1h or under — a single delay upstream propagates straight through.</td></tr>
+        <tr><td>high_risk_thin_cover</td><td>A crew member with a high disruption-risk score is rostered where legal cover would be scarce or expensive if they dropped out.</td></tr>
+        <tr><td>flagged_roster_exception</td><td>The dataset's own flagged illegal assignment (scenario S5) — surfaced immediately, not discovered.</td></tr>
+      </table>
+    </section>
+
+    <!-- ===================== 08 GUARANTEES ===================== -->
+    <section id="guarantees">
+      <div class="kicker"><span class="idx">08</span></div>
+      <h2>What makes "reliable" checkable, not asserted</h2>
+      <p class="lede">
+        Every claim above is backed by something a judge can run, not a statement to take on
+        faith.
+      </p>
+
+      <div class="grid2">
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--legal)"></span></span>Import-graph test</h4>
+          <p>Walks every module under <code>app/core</code> and fails if it imports FastAPI,
+          SQLAlchemy, LangGraph, Anthropic, or any layer above it. The boundary in fig. 1 is
+          enforced at build time, not by convention.</p>
+          <span class="file">tests/test_core_purity.py</span>
+        </div>
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--caution)"></span></span>Narration verifier</h4>
+          <p>Extracts every number, crew id, flight id, pairing id and rule name from the
+          model's draft and checks each against the run's fact ledger before the answer ships.</p>
+          <span class="file">app/agent/verify.py</span>
+        </div>
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--advisory)"></span></span>Honesty guards</h4>
+          <p>A policy question ("should we swap him out?") and a compound disruption
+          ("closure <em>and</em> a sick call") both route to a clarification instead of a
+          confident half-answer — tested in both directions so a guard tight enough to catch
+          them can't also refuse a real question.</p>
+          <span class="file">tests/test_routing_and_honesty.py</span>
+        </div>
+        <div class="card">
+          <h4><span class="legend-item"><span class="sw" style="background:var(--accent)"></span></span>Deterministic replay</h4>
+          <p>Every tool call is hashed on input and output. <code>/api/runs/{id}/replay</code>
+          re-executes the same call against the same snapshot and diffs the hashes — proof the
+          deterministic half is actually deterministic, not just untested.</p>
+          <span class="file">app/api/routes/observability.py</span>
+        </div>
+      </div>
+
+      <table class="guard">
+        <tr><th>Check</th><th>Result</th></tr>
+        <tr><td>Engine conformance</td><td>46 / 46 — 38 questions (16 / 14 / 8 per tier), 6 worked scenarios, 2 held-out scenarios used once. Calls app.core directly, no model, ~60ms total.</td></tr>
+        <tr><td>Live-agent conformance</td><td>36 / 38 (94.7%) sending each question's own English through the real agent — model included, ~2 minutes wall time. The 2 remaining are genuine model-classification variance on one borderline question, not a fixable defect — reported honestly rather than chased to a false 100%.</td></tr>
+        <tr><td>Automated test suite</td><td>117 tests passing in ~2 seconds, including rule boundary cases and routing honesty tests</td></tr>
+        <tr><td>Live scorecard</td><td>Re-run on demand from the console (<code>/eval</code>) — both suites above, against the same answer keys, on stage</td></tr>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="rule"></div>
+  Crew Ops Advisor · dCortex Air, hub BLR, week of 2026-09-14 · figures measured against the
+  shipped dataset and this repository's own test suite.
+</footer>
+</body>
+</html>

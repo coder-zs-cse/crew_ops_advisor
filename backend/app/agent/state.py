@@ -31,6 +31,11 @@ class Entities:
     numbers: list[float] = field(default_factory=list)
     unresolved: list[dict] = field(default_factory=list)
     ambiguous: list[dict] = field(default_factory=list)
+    #: The seat/rank the question asks a candidate to cover, when it differs
+    #: from that candidate's own rank (e.g. "can First Officer X cover the
+    #: Captain's seat" -- X's own rank is First Officer; this is "Captain").
+    #: None when only one role is mentioned, or none at all.
+    seat_role: str | None = None
 
     @property
     def crew_id(self) -> str | None:
@@ -69,6 +74,7 @@ class Entities:
                 "numbers": self.numbers,
                 "unresolved": self.unresolved,
                 "ambiguous": self.ambiguous,
+                "seat_role": self.seat_role,
             }.items()
             if v
         }

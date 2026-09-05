@@ -1,19 +1,30 @@
 """RULE-FLT-03 -- Max 100 flight (block) hours in any 28 consecutive calendar days.
 
-KNOWN DATASET DISCREPANCY -- read before "fixing" this.
+Hard gate. History, for anyone reading this after the fact:
 
-The dataset generator lists RULE-FLT-03 in every option's ``rules_checked``
-array but its ``check_cover()`` never evaluates it. Two consequences:
+The dataset generator (`generate.py`) lists RULE-FLT-03 in every option's
+``rules_checked`` array but its own ``check_cover()`` never evaluates it, so no
+scenario or question in the shipped answer keys (`scenarios.json`,
+`questions.json`) ever contains a FLT-03 breach. For a while this module
+computed the real 28-day total honestly but reported it at ``advisory``
+severity so it could never exclude a candidate -- deliberately matching the
+generator's gap rather than fixing it, on the theory that enforcing the limit
+might exclude a candidate the shipped answer keys called legal.
 
-1. Cover segments carry ``flight_hours = 0.0``, so a simulated assignment adds
-   no block hours to the 28-day window at all.
-2. If we enforced the rule as a hard gate we could exclude a candidate that the
-   shipped answer keys list as legal.
+That was the wrong call to make silently. Re-running the full answer-key suite
+(`tests/conformance/test_answer_keys.py`) with this rule enforced as a hard
+gate shows every one of the 6 shipped scenarios and 38 questions still passes
+-- none of them ever came close to 100h/28d, so the "discrepancy" never
+actually bit. What it produced instead was a live inconsistency: this rule
+would say "legal" for a genuine >100h breach while `simulate_duty_window` (a
+separate, engine-free code path answering the same question) said "breach"
+for the identical arithmetic. Two tools, one fact, two verdicts -- worse than
+either choice made consistently. See `generalization_questions.json`'s GQ16
+for the reproduction, and ``docs/LIMITATIONS.md`` §1.1 for the fuller writeup.
 
-So we compute it honestly and report it, but at ``advisory`` severity: it never
-removes a candidate from the eligible list. ``STRICT`` flips it to a hard gate
-for anyone who wants to see the difference; the conformance harness runs both
-and reports whether the two disagree.
+RULE-FLT-03 is now enforced exactly like the other six: a breach here makes
+the candidate illegal, full stop. There is no advisory mode to flip back on --
+that toggle is the mistake being corrected, not a feature to keep around.
 """
 
 from __future__ import annotations
@@ -32,15 +43,9 @@ RULE_ID = "RULE-FLT-03"
 MAX_FLIGHT_HOURS = 100.0
 WINDOW_DAYS = 28
 
-#: Set True to make the 28-day block limit a hard exclusion.
-STRICT = False
-
 
 class TwentyEightDayFlightRule:
     rule_id = RULE_ID
-
-    def __init__(self, strict: bool = STRICT) -> None:
-        self.strict = strict
 
     def evaluate(self, ctx: CoverContext) -> list[RuleVerdict]:
         max_flight_hours = rule_param(ctx.world, RULE_ID, "max_flight_hours", MAX_FLIGHT_HOURS)
@@ -66,16 +71,15 @@ class TwentyEightDayFlightRule:
             total = round(base + added, 2)
 
             over = total > max_flight_hours + EPS
-            verdict = ("breach" if self.strict else "advisory") if over else "pass"
+            verdict = "breach" if over else "pass"
 
             out.append(
                 RuleVerdict(
                     rule_id=RULE_ID,
                     verdict=verdict,
                     message=(
-                        f"RULE-FLT-03: would reach {total}h block in {window_days} days vs "
-                        f"{max_flight_hours}h limit on {d} "
-                        "(advisory: the reference ruleset does not gate on this)"
+                        f"RULE-FLT-03: would exceed {max_flight_hours}h/{window_days}d by "
+                        f"{round(total - max_flight_hours, 2)}h on {d} (total {total}h)"
                         if over
                         else f"{window_days}-day block {total}h of {max_flight_hours}h "
                         f"({round(max_flight_hours - total, 2)}h headroom) on {d}"

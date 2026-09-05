@@ -168,6 +168,48 @@ def test_every_registered_intent_has_a_plan():
         assert plan.answer_schema
 
 
+def test_ambiguous_surname_is_flagged_not_silently_substituted(world):
+    """crew.json has 7 different '*. Nair's. Before this fix, 'Captain Nair'
+    with a pairing named alongside it silently resolved to whoever holds the
+    Captain seat on that pairing -- C-5837, A. Sharma, not any Nair at all --
+    with no ambiguous/unresolved signal. It must now surface the ambiguity
+    (2 Captains named Nair) instead of guessing."""
+    ents = resolve("Is Captain Nair legal to cover pairing P-2201?", world)
+    assert ents.crew_ids == []
+    hit = next(a for a in ents.ambiguous if a["kind"] == "crew_name")
+    assert set(hit["candidates"]) == {"C-1042", "C-5820"}
+
+
+def test_unique_surname_resolves_confidently(world):
+    """A surname that narrows to exactly one crew member (here, by surname
+    *and* the stated rank -- 'Rao' alone spans more than one) should still
+    resolve -- the fix is against silent *wrong* answers, not against
+    answering at all."""
+    ents = resolve("Is Captain Rao legal to cover pairing P-2201?", world)
+    assert ents.crew_ids == ["C-1600"]
+
+
+def test_surname_with_no_matching_rank_is_unresolved_not_substituted(world):
+    """'Bose' is a real surname (7 crew), but none of them is a Captain -- this
+    must not fall back to a same-named person of the wrong rank, or to anyone
+    else."""
+    ents = resolve("Is Captain Bose legal to cover pairing P-2201?", world)
+    assert ents.crew_ids == []
+    assert any(u["kind"] == "crew_name" for u in ents.unresolved)
+
+
+def test_named_seat_differing_from_candidates_own_rank_is_captured(world):
+    """'can First Officer X cover the Captain's seat' names two roles: X's own
+    rank (First Officer) and the seat being asked about (Captain). seat_role
+    must be the latter, not whichever ROLE_PATTERNS entry happened to match
+    first."""
+    ents = resolve(
+        "Can First Officer C-1694 legally cover the Captains seat on pairing P-2291?", world
+    )
+    assert ents.crew_ids == ["C-1694"]
+    assert ents.seat_role == "Captain"
+
+
 def test_router_is_deterministic(world):
     question = "Captain C-1042 is out for pairing P-2291. What should I do?"
     ents = resolve(question, world)

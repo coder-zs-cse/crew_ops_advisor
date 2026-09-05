@@ -189,20 +189,79 @@ def resolve(text: str, world: World, *, proposed: dict | None = None) -> Entitie
             ents.times_utc.append(f"{ents.dates[0]}T{hh:02d}:{mm:02d}:00Z")
 
     # ---- roles ------------------------------------------------------------
+    # Every distinct role mentioned is kept (not just the first match) so a
+    # sentence naming two ranks -- "can First Officer X cover the Captain's
+    # seat" -- doesn't lose the second one. Order is pattern-priority (most
+    # specific first), which every existing ``e.roles[0]`` accessor already
+    # relies on and which this leaves unchanged in the single-role case.
     for pattern, role in ROLE_PATTERNS:
-        if pattern.search(text):
+        if pattern.search(text) and role not in ents.roles:
             ents.roles.append(role)
-            break
 
     # ---- numbers with an hours unit ---------------------------------------
     for match in NUMBER_RE.finditer(text):
         ents.numbers.append(float(match.group(1)))
+
+    # ---- names --------------------------------------------------------
+    # A surname mentioned without a C-#### id still names a specific person
+    # (or several) in this dataset -- it must not be silently discarded in
+    # favour of a role/pairing guess below. At this scale (150 crew) a linear
+    # scan against a surname index built per call is fine; a real deployment
+    # would keep that index built once, not per question.
+    if not ents.crew_ids:
+        _resolve_by_name(ents, world, text)
 
     if proposed:
         _merge_proposed(ents, proposed, world)
 
     _infer_missing(ents, world, text)
     return ents
+
+
+def _resolve_by_name(ents: Entities, world: World, text: str) -> None:
+    by_surname: dict[str, list] = {}
+    for crew in world.crew:
+        surname = crew.name.split()[-1]
+        by_surname.setdefault(surname.lower(), []).append(crew)
+
+    hits: list = []
+    matched_surname = None
+    for surname, members in by_surname.items():
+        if re.search(rf"\b{re.escape(surname)}\b", text, re.I):
+            hits.extend(members)
+            matched_surname = surname
+    if not hits:
+        return
+
+    wanted_roles = set(ents.roles)
+    candidates = [c for c in hits if not wanted_roles or c.rank in wanted_roles]
+
+    if wanted_roles and not candidates:
+        ents.unresolved.append(
+            {
+                "kind": "crew_name",
+                "value": matched_surname,
+                "reason": f"no {'/'.join(sorted(wanted_roles))} named {matched_surname!r} in crew.json "
+                f"(that surname exists, but not at that rank)",
+            }
+        )
+        return
+
+    if len(candidates) == 1:
+        ents.crew_ids.append(candidates[0].crew_id)
+        return
+
+    ents.ambiguous.append(
+        {
+            "kind": "crew_name",
+            "candidates": sorted(c.crew_id for c in candidates),
+            "basis": (
+                f"matched by surname {matched_surname!r}"
+                + (f" and role {sorted(wanted_roles)}" if wanted_roles else "")
+                + " -- more than one crew member fits; ask for the crew_id"
+            ),
+        }
+    )
 
 
 def _merge_proposed(ents: Entities, proposed: dict, world: World) -> None:
@@ -276,8 +335,14 @@ def _infer_missing(ents: Entities, world: World, text: str) -> None:
                 ents.pairing_ids.append(pairing.pairing_id)
 
     # "the captain of VT-DXA" names a person without giving their id: read it
-    # off the roster for the pairing we just resolved.
-    if ents.pairing_ids and ents.roles and not ents.crew_ids:
+    # off the roster for the pairing we just resolved. Skipped when a *named*
+    # surname already came back ambiguous or unresolved (_resolve_by_name,
+    # above) -- "Captain Nair" must not silently become "whoever is Captain of
+    # the pairing mentioned" when the stated name doesn't confirm that guess.
+    named_ambiguously = any(a.get("kind") == "crew_name" for a in ents.ambiguous) or any(
+        u.get("kind") == "crew_name" for u in ents.unresolved
+    )
+    if ents.pairing_ids and ents.roles and not ents.crew_ids and not named_ambiguously:
         wanted = ents.roles[0]
         for pairing_id in ents.pairing_ids:
             pairing = world.get_pairing(pairing_id)
@@ -292,6 +357,19 @@ def _infer_missing(ents: Entities, world: World, text: str) -> None:
         crew = world.get_crew(ents.crew_ids[0])
         if crew:
             ents.roles.append(crew.rank)
+
+    # A second, *different* role named alongside a resolved crew member is the
+    # seat being asked about, not the candidate -- "can First Officer X cover
+    # the Captain's seat" (X's own rank is First Officer; "Captain" is the
+    # seat). Compared against the crew record directly, not by position in
+    # ents.roles, so it doesn't depend on which ROLE_PATTERNS entry matched
+    # first.
+    if ents.crew_ids and len(ents.roles) > 1:
+        crew = world.get_crew(ents.crew_ids[0])
+        if crew:
+            seat = next((r for r in ents.roles if r != crew.rank), None)
+            if seat:
+                ents.seat_role = seat
 
 
 def describe_gap(ents: Entities, needed: list[str]) -> list[str]:

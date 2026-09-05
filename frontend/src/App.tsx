@@ -31,9 +31,9 @@ const NAV = [
   { to: '/advisor', label: 'Advisor', icon: MessageSquare },
   { to: '/workbench', label: 'Workbench', icon: Wrench },
   { to: '/crew', label: 'Crew', icon: Users },
-  { to: '/briefing', label: 'Briefing', icon: CalendarClock },
+  // { to: '/briefing', label: 'Briefing', icon: CalendarClock },
   { to: '/runs', label: 'Traces', icon: Activity },
-  { to: '/eval', label: 'Scorecard', icon: ClipboardCheck },
+  // { to: '/eval', label: 'Scorecard', icon: ClipboardCheck },
   { to: '/rules', label: 'Rules', icon: BookOpen },
 ]
 

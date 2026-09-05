@@ -144,7 +144,9 @@ register(
         "LEGALITY_CHECK",
         2,
         (
-            Step("check_legality", {"crew_id": C, "pairing_id": P}),
+            # role is None unless the question names a seat that differs from
+            # the candidate's own rank (Entities.seat_role) -- see entities.py.
+            Step("check_legality", {"crew_id": C, "pairing_id": P, "role": lambda e: e.seat_role}),
             Step("get_duty_clock", {"crew_id": C, "as_of": D}),
         ),
         ("crew_id", "pairing_id"),
@@ -208,8 +210,12 @@ register(
 )
 register(
     Plan(
+        # Retrieval + one fixed-constant addition (release + RULE-REST-04's
+        # minimum), not a simulated event or an impact computation -- fits the
+        # brief's own Tier 1 definition ("no domain modelling required") better
+        # than Tier 2's, and is treated that way in this codebase's own scoring.
         "REST_CALC",
-        2,
+        1,
         (Step("check_rest", {"release_utc": TIME}), Step("get_rule", {"rule_id": lambda e: "RULE-REST-04"})),
         ("time",),
         "check_rest",
@@ -219,8 +225,11 @@ register(
 )
 register(
     Plan(
+        # A network-wide filter over duty_clocks against a threshold -- the same
+        # shape as CERT_EXPIRY_LIST's "list crew whose licence expires within 30
+        # days" (a Tier 1 example in the brief itself), not a simulated event.
         "DUTY_SCAN",
-        2,
+        1,
         (Step("duty_window_scan", {"date": D, "threshold_hours": HOURS(45.0)}),),
         ("date",),
         "duty_window_scan",
@@ -429,10 +438,22 @@ AMBIGUITY_RATIO = 0.6
 #: Phrasings that ask for a judgement the seven rules do not encode. The system
 #: can compute every input to these and still has no defensible threshold for
 #: the answer, so it says that instead of inventing one.
+#:
+#: The first line is the original set, tuned against three specific canned
+#: examples. It missed a same-meaning paraphrase with none of those trigger
+#: words -- "C-3940 is showing a 0.71 risk score -- is keeping them on it a
+#: good idea?" scored as a plain RISK_LOOKUP instead of declining (see
+#: generalization_questions.json's GQ08). The second line generalises to
+#: evaluative-judgement language directly ("good/bad/wise idea", "makes sense
+#: to", "advisable") rather than adding one more literal phrase -- still a
+#: pattern match, not a semantic classifier, so it is a wider net, not a fix
+#: for the underlying class of paraphrase this can still miss.
 POLICY_RE = _rx(
-    r"\bshould (we|i)\b.*\b(pre-?emptive|swap out|stand ?down|rest|replace|risk)\b"
+    r"\bshould (we|i)\b.*\b(pre-?emptive|swap out|stand ?down|rest|replace|risk|keep)\b"
     r"|\bis it worth\b|\bworth (the|it)\b|\bwhich is better\b|\bbetter overall\b"
     r"|\bdo you (think|recommend) we should\b|\bwould you\b.*\brather\b"
+    r"|\b(good|bad|wise|sensible|smart|risky) (idea|move|call|bet)\b"
+    r"|\bmakes sense to\b|\bis (it|that|this) (wise|sensible|advisable)\b"
 )
 
 #: Two independent disruptions in one sentence. Each is modelled; the pair is

@@ -134,6 +134,75 @@ def test_no_positioning_between_unserved_bases(world):
     )
 
 
+# ---- RULE-FLT-03 ----------------------------------------------------------
+
+
+def test_flight_hour_breach_is_a_hard_gate_not_advisory(world, monkeypatch):
+    """Real duty combos in this dataset never reach 100h/28d -- every shipped
+    roster is guaranteed legal by construction (README, generate.py's own
+    sanity assert). That means a *genuine* breach can only be demonstrated by
+    controlling the "existing" side of the window directly; this proves the
+    gate itself actually excludes, not that some scenario happens to trigger
+    it. See docs/LIMITATIONS.md §1.1 and generalization_questions.json's GQ16
+    for why this used to be advisory-only."""
+    import app.core.rules.flt03 as flt03
+
+    monkeypatch.setattr(flt03, "window_sum", lambda *a, **k: 95.0)
+    pairing = world.pairing("P-2291")  # real 2-day pairing; real block hours on top
+    report = check_cover(world, "C-3310", pairing.days, exclude_pairing=None)
+    assert not report.legal
+    breach = next(v for v in report.verdicts if v.rule_id == "RULE-FLT-03" and v.is_breach)
+    assert breach.verdict == "breach"
+    assert "RULE-FLT-03" in "; ".join(report.issues)
+
+
+def test_flight_hour_headroom_case_still_passes(world):
+    """Sanity check in the other direction: a real, small addition against a
+    real crew member's real headroom does not spuriously breach."""
+    pairing = world.pairing("P-2291")
+    report = check_cover(world, "C-3310", pairing.days, exclude_pairing=None)
+    breach = [v for v in report.verdicts if v.rule_id == "RULE-FLT-03" and v.is_breach]
+    assert not breach
+
+
+# ---- structural preconditions (CONSTRAINT-STATUS / CONSTRAINT-RANK) ------
+
+
+def test_crew_on_leave_is_illegal_regardless_of_the_seven_rules(world):
+    """C-1564 is a Captain on planned leave. Before this fix, check_cover only
+    ever evaluated the seven numbered rules and never looked at crew.status,
+    so this came back legal=True -- fluent, confident, and wrong."""
+    pairing = world.pairing("P-2214")
+    report = check_cover(world, "C-1564", pairing.days, exclude_pairing=None)
+    assert not report.legal
+    assert report.issues == ("CONSTRAINT-STATUS: C-1564 is on leave, not available for duty",)
+
+
+def test_wrong_rank_for_the_seat_is_illegal_when_a_seat_is_named(world):
+    """C-1694 is P-2291's own First Officer. Asking whether they can hold the
+    *Captain's* seat must fail on rank, not silently pass every arithmetic
+    rule the way it did before this fix."""
+    pairing = world.pairing("P-2291")
+    report = check_cover(
+        world, "C-1694", pairing.days, exclude_pairing="P-2291", required_role="Captain"
+    )
+    assert not report.legal
+    assert report.issues == (
+        "CONSTRAINT-RANK: C-1694 is a First Officer, not a Captain -- cannot legally hold "
+        "the Captain's seat regardless of duty-hour, rest or rating headroom",
+    )
+
+
+def test_no_seat_named_keeps_every_prior_behaviour_unchanged(world):
+    """required_role defaults to None: every one of the 38 shipped questions
+    and 6 scenarios calls check_cover without ever naming a seat, and this
+    must reproduce exactly what they always got."""
+    pairing = world.pairing("P-2291")
+    report = check_cover(world, "C-1694", pairing.days, exclude_pairing="P-2291")
+    assert report.legal
+    assert report.issues == ()
+
+
 # ---- rounding ------------------------------------------------------------
 
 

@@ -1,0 +1,310 @@
+[
+ {
+  "question_id": "GQ01",
+  "tier": 1,
+  "prompt": "Look up crew member C-9999.",
+  "expected_behavior": "decline",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "no such crew_id in crew.json",
+   "ideal_response_contains": [
+    "not found",
+    "C-9999"
+   ]
+  },
+  "explanation": "crew.json has no C-9999. The system must say so, not invent a record.",
+  "rules_ref": [],
+  "generalization_probe": "unknown_entity",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ02",
+  "tier": 1,
+  "prompt": "What time does flight DX999 depart on 2026-09-15?",
+  "expected_behavior": "decline",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "no flight numbered DX999 exists in flights.json",
+   "ideal_response_contains": [
+    "not found",
+    "DX999"
+   ]
+  },
+  "explanation": "flights.json's flight numbers are DX401-591 in the seven patterns; DX999 is not one of them.",
+  "rules_ref": [],
+  "generalization_probe": "unknown_entity",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ03",
+  "tier": 2,
+  "prompt": "PNQ is closed 08:00-14:00Z on 17 Sep -- what's the crew impact?",
+  "expected_behavior": "decline",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "PNQ is not one of the 8 stations the network serves",
+   "ideal_response_contains": [
+    "PNQ",
+    "not",
+    "network"
+   ]
+  },
+  "explanation": "The 8 stations are BLR, BOM, CCU, COK, DEL, GOI, HYD, MAA (flights.json). A closure question about a station with zero flights is not 'zero affected flights' (a true, computable answer) -- it's a station the network doesn't serve at all, which is a different, more honest thing to say.",
+  "rules_ref": [],
+  "generalization_probe": "unknown_entity",
+  "severity": "fixed",
+  "current_system_behaviour": "FIXED (final_repo/backend, app/tools/catalog.py's simulate_station_closure). Before this fix, station_closure() never checked the station argument against world.stations at all -- it just scanned flights.json for matches, so a made-up code like 'PNQ' silently produced affected_flights=[], identical in shape to a real, served station that simply has nothing in the window. Re-run: catalog.simulate_station_closure(world, station='PNQ', ...) now returns {'found': False, 'error': \"'PNQ' is not a station this network serves\", 'hint': 'known stations: BLR, BOM, CCU, COK, DEL, GOI, HYD, MAA'} instead."
+ },
+ {
+  "question_id": "GQ04",
+  "tier": 1,
+  "prompt": "How many duty hours will C-1042 have accrued in the 7 days ending 2026-09-25?",
+  "expected_behavior": "decline",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "2026-09-25 is five days past the schedule window (2026-09-14..20); no roster or duty data exists for it",
+   "ideal_response_contains": [
+    "2026-09-20",
+    "schedule",
+    "window"
+   ]
+  },
+  "explanation": "duty_clocks.json's daily_history stops at the snapshot (2026-09-14) and rosters.json has no duty published past 2026-09-20. The honest answer states the window bounds, not a number extrapolated past them.",
+  "rules_ref": [],
+  "generalization_probe": "out_of_window",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ05",
+  "tier": 2,
+  "prompt": "Is Captain Nair legal to cover pairing P-2201?",
+  "expected_behavior": "clarify",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "crew.json has 7 different crew members named *. Nair across 3 ranks and 2 bases (C-1042 A. Nair Captain/BLR, C-2295 S. Nair First Officer/BLR, C-3145 A. Nair Cabin Crew/BLR, C-3266 R. Nair Senior Cabin Crew/BLR, C-5020 K. Nair First Officer/DEL, C-5820 N. Nair Captain/BLR, C-5848 V. Nair Cabin Crew/BLR); 'Captain Nair' alone narrows this to exactly 2 (C-1042, C-5820), still ambiguous",
+   "ideal_response_contains": [
+    "C-1042",
+    "C-5820",
+    "which",
+    "clarify"
+   ]
+  },
+  "explanation": "A name is not an id in this dataset; the honest move is to list the (in this case 2) candidates and ask which one, or require the id.",
+  "rules_ref": [],
+  "generalization_probe": "entity_resolution_by_name",
+  "severity": "fixed",
+  "historical_note": "Empirically run against final_repo/backend (app.agent.entities.resolve): given 'Is Captain Nair legal to cover pairing P-2201?', the resolver returns crew_ids=['C-5837'] -- A. Sharma, who is not named Nair at all. It never matches on the name token; because P-2201 is mentioned and 'Captain' is recognised as a role, the _infer_missing() fallback in entities.py silently substitutes 'whoever holds the Captain seat on the pairing already named in the question', discarding the stated surname entirely. ents.unresolved and ents.ambiguous are both empty -- no signal reaches the answer that a name was involved at all. route() then proceeds at confidence 0.545 to LEGALITY_CHECK for C-5837. This is a fluent, confident, wrong substitution, not a refusal.",
+  "current_system_behaviour": "FIXED (final_repo/backend, app/agent/entities.py). resolve() now scans a surname index built from world.crew before falling back to the pairing/role heuristic. Re-run: resolve('Is Captain Nair legal to cover pairing P-2201?', world) now returns crew_ids=[] and ents.ambiguous=[{'kind':'crew_name','candidates':['C-1042','C-5820'], ...}] -- the two real Captains named Nair -- instead of silently substituting C-5837 (A. Sharma). A surname that narrows to exactly one crew member (by surname plus stated rank) still resolves normally; a surname matching the wrong rank for everyone who holds it (e.g. 'Captain Bose', 0 of 7 Boses are Captains) reports unresolved rather than substituting. Covered by tests/test_routing_and_honesty.py's test_ambiguous_surname_is_flagged_not_silently_substituted, test_unique_surname_resolves_confidently and test_surname_with_no_matching_rank_is_unresolved_not_substituted."
+ },
+ {
+  "question_id": "GQ06",
+  "tier": 2,
+  "prompt": "Captain C-1042 calls in sick -- can First Officer C-1694 (his own First Officer on P-2291) legally cover the Captain's seat for the rest of the pairing?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "legal": false,
+   "why": "a First Officer cannot legally act as the pairing's Captain; the seat requires Captain rank regardless of aircraft-type rating or duty-hour headroom"
+  },
+  "explanation": "Rank-to-seat complement is a structural precondition enforced when rosters.json is authored (validate.py's own COMP table), but none of the seven rules in rules.json encode it -- RULE-QUAL-05 only checks aircraft *type*, not *rank*.",
+  "rules_ref": [],
+  "generalization_probe": "structural_precondition_gap_rank",
+  "severity": "fixed",
+  "historical_note": "Empirically run against final_repo/backend: `check_cover(world, 'C-1694', P-2291.days, exclude_pairing='P-2291')` -- i.e. exactly what the check_legality tool runs -- returns legal=True, issues=(). The rule engine (app/core/rules/engine.py) only evaluates RULE-QUAL-05/CERT-06/FDP-01/REST-04/DUTY-02/FLT-03; none of them check crew.rank against the seat being covered. The rank filter exists, but only inside candidates.py's enumerate_cover_for_pairing (which restricts its search to crew whose rank already matches the requested role) -- a direct check_legality(crew_id, pairing_id) or simulate_assignment call never passes through that filter, so it can return 'legal' for a candidate sitting in the wrong seat entirely.",
+  "current_system_behaviour": "FIXED at the core layer (final_repo/backend, app/core/rules/precondition.py's new SeatRankRule, wired through CoverContext.required_role / check_cover's required_role= / check_legality's new role= parameter). Direct re-run: check_cover(world, 'C-1694', P-2291.days, exclude_pairing='P-2291', required_role='Captain') now returns legal=False, issues=(\"CONSTRAINT-RANK: C-1694 is a First Officer, not a Captain -- cannot legally hold the Captain's seat ...\",). The natural-language layer (entities.py) also now captures this for the common single-crew-id phrasing -- 'Can First Officer C-1694 legally cover the Captain's seat on P-2291?' resolves seat_role='Captain' and LEGALITY_CHECK passes role='Captain' through -- but this question's original two-crew-id phrasing (naming both C-1042, who is sick, and C-1694, the candidate) still has a separate, smaller residual gap: entity resolution has no notion of 'which named crew_id is the subject of the question' when two are mentioned, and currently takes the first one (C-1042) as e.crew_id regardless of sentence role. That is a distinct problem from the one this question was written to probe (rank never being checked at all) and was left unfixed this pass; see docs/LIMITATIONS.md. Covered by tests/test_rules.py's test_wrong_rank_for_the_seat_is_illegal_when_a_seat_is_named and test_no_seat_named_keeps_every_prior_behaviour_unchanged (the default-None case, proving every one of the 38 shipped questions is bit-for-bit unaffected), and tests/test_routing_and_honesty.py's test_named_seat_differing_from_candidates_own_rank_is_captured."
+ },
+ {
+  "question_id": "GQ07",
+  "tier": 1,
+  "prompt": "What does RULE-CREW-08 require?",
+  "expected_behavior": "decline",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "rules.json defines exactly seven rules (RULE-FDP-01 .. RULE-BASE-07); there is no RULE-CREW-08",
+   "ideal_response_contains": [
+    "seven",
+    "not",
+    "RULE-CREW-08"
+   ]
+  },
+  "explanation": "Grounding to the ruleset means saying a rule id doesn't exist, not guessing what a plausibly-named rule might mean.",
+  "rules_ref": [],
+  "generalization_probe": "rule_scope",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ08",
+  "tier": 2,
+  "prompt": "C-3940 is showing a 0.71 disruption-risk score for tomorrow's pairing -- is keeping them on it a good idea?",
+  "expected_behavior": "decline",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "this is the same policy judgement as 'should we pre-emptively swap C-1042 out given his 0.78 risk score' (already a documented decline case) -- risk_signals.json has no threshold that separates 'a good idea' from not",
+   "ideal_response_contains": [
+    "policy",
+    "threshold",
+    "risk score"
+   ]
+  },
+  "explanation": "Rephrasing the canned policy example without its trigger words ('should we', 'pre-emptive', 'worth it') is exactly the kind of paraphrase a controller would actually type.",
+  "rules_ref": [],
+  "generalization_probe": "policy_regex_generalization",
+  "severity": "fixed",
+  "historical_note": "Empirically run against final_repo/backend's router (app.agent.plans.route): this phrasing does NOT set policy_question=True. POLICY_RE requires one of a fixed list of trigger phrases ('should we/i ... pre-emptive|swap out|stand down|rest|replace|risk', 'is it worth', 'worth the/it', 'which is better', 'better overall', 'do you think/recommend we should', 'would you ... rather'); 'is keeping them on it a good idea?' matches none of them. The router instead scores this as RISK_LOOKUP (confidence 0.565) and would answer with the raw score and drivers -- not wrong on the facts, but it skips the honesty guard a controller relying on it would expect for a judgement call.",
+  "current_system_behaviour": "PARTIALLY ADDRESSED (final_repo/backend, app/agent/plans.py's POLICY_RE). Widened from three literal trigger phrases to also match generic evaluative-judgement language ('good/bad/wise idea', 'makes sense to', 'is it advisable'). Re-run: this exact phrasing now sets policy_question=True and the router still reports intent=RISK_LOOKUP underneath it -- graph.py declines whenever policy_question is set regardless of which intent matched. This is still a pattern-matching fix, not a semantic one: a further paraphrase using none of the now-wider trigger words could still slip through the same way this one did. The architecturally complete fix -- routing evaluative-judgement detection through the LLM-classifier fallback plans.py's own docstring already describes as existing for 'genuinely novel questions', rather than growing POLICY_RE phrase by phrase -- was not implemented this pass."
+ },
+ {
+  "question_id": "GQ09",
+  "tier": 2,
+  "prompt": "BLR closes 08:00-14:00Z on 17 Sep, the VT-DXA captain calls in sick that same morning, and DX588 is delayed 2 hours -- what do I do?",
+  "expected_behavior": "decline",
+  "expected_answer": {
+   "should_answer": false,
+   "why": "three independent events in one question; the existing compound-question guard is documented and tested for two, not three",
+   "ideal_response_contains": [
+    "more than one",
+    "closure",
+    "sick",
+    "delay"
+   ]
+  },
+  "explanation": "Extends the shipped two-event compound tests (test_routing_and_honesty.py) to three, to check the guard doesn't quietly stop working past the shape it was written for.",
+  "rules_ref": [],
+  "generalization_probe": "compound_guard_scaling",
+  "severity": "info",
+  "current_system_behaviour": "Empirically run against final_repo/backend's router: COMPOUND_EVENT_RE still fires (compound=True) on this three-event sentence -- it matches on the first closure/delay/cancel .. and .. sick/lapse pair it finds and does not need to count all events, so extra events don't defeat it. Verified good: this is NOT a gap, and is recorded here so the suite has positive evidence, not just failures. (Not independently re-verified end-to-end through Advisor.ask()'s abstention path, which was outside this session's scope -- only the router-level flag was checked.)"
+ },
+ {
+  "question_id": "GQ10",
+  "tier": 2,
+  "prompt": "C-2091 is a Captain rated only on ATR72. Can they legally operate an A320 pairing, e.g. P-2202?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "legal": false,
+   "rule": "RULE-QUAL-05",
+   "detail": "no A320 rating"
+  },
+  "explanation": "Direct RULE-QUAL-05 exclusion for the crew member the README itself flags as the 'QUAL-05 teaching case' -- surprisingly, no shipped scenario or question actually asks this as a standalone question (S2's excluded-candidates list carries the reason but nothing in questions.json exercises it directly).",
+  "rules_ref": [
+   "RULE-QUAL-05"
+  ],
+  "generalization_probe": "qual05_direct",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ11",
+  "tier": 2,
+  "prompt": "Captain C-1564 is on planned leave this week. Can they legally cover pairing P-2214 if asked?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "legal": false,
+   "why": "status=leave -- unavailable regardless of duty-hour, rest or rating headroom"
+  },
+  "explanation": "Availability (crew.json's status field) is a precondition, not one of the seven rules, and must be checked before -- not instead of, and not skipped entirely -- the rule engine.",
+  "rules_ref": [],
+  "generalization_probe": "structural_precondition_gap_status",
+  "severity": "fixed",
+  "historical_note": "Empirically run against final_repo/backend: `check_cover(world, 'C-1564', P-2214.days, exclude_pairing=None)` returns legal=True, issues=() -- C-1564's status ('leave') is never consulted. Same root cause as GQ06: per candidates.py's own module docstring, the gate order is 'status/rank filter -> RULE-BASE-07 positioning -> reserve on-call window -> the seven-rule legality engine -> costing', and that status/rank filter lives only in enumerate_cover_for_pairing, upstream of and invisible to check_cover / check_legality / simulate_assignment. Any question phrased as a direct legality check on a named crew_id bypasses it.",
+  "current_system_behaviour": "FIXED (final_repo/backend, app/core/rules/precondition.py's new AvailabilityRule, run unconditionally -- no parameter needed, unlike the rank check, since availability is never 'unspecified'). Re-run: check_cover(world, 'C-1564', P-2214.days, exclude_pairing=None) now returns legal=False, issues=('CONSTRAINT-STATUS: C-1564 is on leave, not available for duty',) instead of legal=True. Same root fix as GQ06 (both preconditions live in the same new module, run first, short-circuiting like RULE-QUAL-05 already did). Covered by tests/test_rules.py's test_crew_on_leave_is_illegal_regardless_of_the_seven_rules."
+ },
+ {
+  "question_id": "GQ12",
+  "tier": 2,
+  "prompt": "If both DX412 (15 Sep, A320) and DX451 (15 Sep, ATR72) are cancelled, how many passengers are affected in total and what is the direct cost?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "passengers": 234,
+   "cost_inr": 500000
+  },
+  "explanation": "162 (A320) + 72 (ATR72) seats; cancellation_per_flight applies per leg regardless of aircraft type, so cost is a flat sum, not a seat-weighted one. Every existing cancellation question (Q25, S3-adjacent) cancels legs of a single aircraft type; this mixes two.",
+  "rules_ref": [],
+  "generalization_probe": "multi_entity_aggregation",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ13",
+  "tier": 2,
+  "prompt": "Reserve C-3310's on-call window is 06:00-18:00Z. If a callout requires them to report at exactly 06:00:00Z, are they in-window? What about one second earlier?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "at_window_start_exact": true,
+   "one_second_earlier": false
+  },
+  "explanation": "Both the dataset generator and the shipped backend (candidates.py's _reserve_window_covers: `start <= required_report <= end`) treat the window as closed on both ends -- the boundary instant itself counts as covered.",
+  "rules_ref": [
+   "RULE-BASE-07"
+  ],
+  "generalization_probe": "boundary_inclusive_reserve_window",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ14",
+  "tier": 2,
+  "prompt": "is c1042 legal for p2291",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "legal": true,
+   "resolved_crew_id": "C-1042",
+   "resolved_pairing_id": "P-2291"
+  },
+  "explanation": "Lowercase, no dashes, no punctuation -- the kind of input a controller actually types under pressure.",
+  "rules_ref": [],
+  "generalization_probe": "id_regex_robustness",
+  "severity": "info",
+  "current_system_behaviour": "Empirically run against final_repo/backend's entity resolver: this resolves cleanly to crew_ids=['C-1042'], pairing_ids=['P-2291'], routes to LEGALITY_CHECK at confidence 0.85. Verified good -- CREW_RE/PAIRING_RE (`\\bC-?(\\d{4})\\b`, re.I) are already robust to this input shape. Recorded so the suite documents a confirmed strength, not only gaps."
+ },
+ {
+  "question_id": "GQ15",
+  "tier": 1,
+  "prompt": "C-2087's licence is valid through 2026-09-18. Are they certified to operate on 2026-09-18 itself? What about the day after?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "on_valid_to_date": true,
+   "day_after": false
+  },
+  "explanation": "RULE-CERT-06 checks `valid_to < duty_date` as the failure condition (both the dataset generator and final_repo/backend's cert06.py agree) -- so the expiry date itself is the LAST legal day, not the first illegal one. Off-by-one here is exactly the 'fluent, confident and wrong' failure mode the problem statement warns about.",
+  "rules_ref": [
+   "RULE-CERT-06"
+  ],
+  "generalization_probe": "boundary_inclusive_cert_validity",
+  "severity": "info"
+ },
+ {
+  "question_id": "GQ16",
+  "tier": 2,
+  "prompt": "C-2143 has flown 79.28h in the 28 days ending 2026-09-20 (20.72h headroom under RULE-FLT-03). If they picked up an additional 21 flight-hours of duty, would RULE-FLT-03 be breached -- and would that stop them being offered as a legal cover candidate?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "total_after": 100.28,
+   "limit": 100.0,
+   "over_limit_by_hours": 0.28,
+   "blocks_candidate_from_being_legal": false
+  },
+  "explanation": "79.28 + 21 = 100.28h, 0.28h over the 100h/28d limit -- arithmetically a breach. But whether that makes the candidate 'illegal' depends on which tool answers: it differs by design, see current_system_behaviour.",
+  "rules_ref": [
+   "RULE-FLT-03"
+  ],
+  "generalization_probe": "flt03_advisory_vs_strict_inconsistency",
+  "severity": "fixed",
+  "historical_note": "Read directly from final_repo/backend/app/core/rules/flt03.py's own module docstring (titled 'KNOWN DATASET DISCREPANCY'): the original dataset generator (generate.py) lists RULE-FLT-03 in every option's rules_checked array but its check_cover() never actually evaluates it, so the shipped answer keys (scenarios.json/questions.json) never exercise a FLT-03 breach. To stay conformant with those answer keys, final_repo's flt03.py computes the real number but reports it at verdict='advisory' (STRICT=False by default), and models.py's RuleVerdict.is_breach / .passed treat 'advisory' as NOT a breach and AS passed -- so `check_cover`/`check_legality`/`enumerate_cover_candidates` will call this candidate legal regardless of the 21h add. `simulate_duty_window`, a separate code path with no engine/advisory concept, would instead report flight_breach=True for the same add-21h scenario. Two tools, same underlying arithmetic, two different verdicts on whether it's a breach -- because one was built to match the answer keys and the other wasn't. STRICT=True exists specifically to flip this and the module says the conformance harness runs both and reports when they disagree.",
+  "current_system_behaviour": "FIXED (final_repo/backend, app/core/rules/flt03.py). The STRICT/advisory toggle was removed entirely -- RULE-FLT-03 now always reports 'breach' when over the limit, exactly like the other six rules, and RuleEngine no longer accepts a strict_flight_hours parameter. Re-running the full answer-key conformance suite (tests/conformance/test_answer_keys.py -- all 6 scenarios, 38 questions, 2 held-out scenarios) with this rule now hard-enforced: all still pass. The 'could exclude a candidate the shipped answer keys call legal' risk the old docstring warned about never actually materialised -- none of the shipped material comes anywhere near 100h/28d. `check_legality` / `enumerate_cover_candidates` / `simulate_duty_window` now agree on every FLT-03 question; the specific inconsistency this question demonstrated (two tools, one fact, two verdicts) no longer exists. Covered by tests/test_rules.py's test_flight_hour_breach_is_a_hard_gate_not_advisory and test_flight_hour_headroom_case_still_passes."
+ },
+ {
+  "question_id": "GQ17",
+  "tier": 2,
+  "prompt": "C-3305 has 56.4h of duty in the 7 days ending 2026-09-14 (3.6h headroom under RULE-DUTY-02). If they picked up exactly that much more duty, would they breach the limit? What about 0.1h more than that?",
+  "expected_behavior": "answer",
+  "expected_answer": {
+   "at_exact_headroom_total": 60.0,
+   "at_exact_headroom_breach": false,
+   "at_headroom_plus_0_1_total": 60.1,
+   "at_headroom_plus_0_1_breach": true,
+   "at_headroom_plus_0_1_excess_hours": 0.1
+  },
+  "explanation": "60.0h exactly is legal -- the rule is 'max 60 duty hours', not 'fewer than 60'. Both the generator and final_repo's duty02.py use `total > max + EPS` (EPS=1e-6) as the breach test, so the boundary itself passes and 60.1h fails by exactly 0.1h.",
+  "rules_ref": [
+   "RULE-DUTY-02"
+  ],
+  "generalization_probe": "boundary_inclusive_duty_window",
+  "severity": "info"
+ }
+]

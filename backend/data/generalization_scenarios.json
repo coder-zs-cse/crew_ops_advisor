@@ -1,0 +1,757 @@
+[
+ {
+  "scenario_id": "G1",
+  "difficulty": "medium",
+  "title": "Short delay that does NOT breach FDP (contrast case for S4)",
+  "generalization_note": "S4 is the only delay scenario in the shipped set and it always breaches (90 min on a 4-sector VT-DXA day). A system tuned only on S4 can learn 'delay => breach' as a shortcut. This is the same tail, a different date, and a smaller delay that leaves the crew legal with a thin margin -- the system must say 'legal' here, not reflexively flag a breach.",
+  "event": {
+   "type": "DELAY",
+   "aircraft": "VT-DXA",
+   "date": "2026-09-19",
+   "delay_hours": 0.5,
+   "narrative": "VT-DXA has a 30-minute technical delay before DX401 on 2026-09-19. All four legs shift by 30 minutes; scheduled ground times between legs (45 minutes each, per flights.json) are unaffected since every leg shifts together."
+  },
+  "answer_key": {
+   "pairing_id": "P-2206",
+   "sectors": 4,
+   "fdp_scheduled_hours": 11.25,
+   "fdp_after_delay_hours": 11.75,
+   "fdp_limit_hours": 12.0,
+   "margin_after_delay_hours": 0.25,
+   "breach": false,
+   "action": "No re-crew needed; the rostered crew legally completes all four sectors.",
+   "detail": "RULE-FDP-01: scheduled FDP 11.25h + 0.5h delay = 11.75h vs the 12.0h limit for 4 sectors -- 0.25h to spare, not a breach."
+  }
+ },
+ {
+  "scenario_id": "G2",
+  "difficulty": "medium",
+  "title": "Same trap crew member (C-2087), a different date, a different rule",
+  "generalization_note": "S2/Q18 teach 'C-2087 is excluded' with the reason hard-tied to RULE-DUTY-02 on 15-16 Sep. C-2087's licence (certifications.json) separately expires 2026-09-18, unrelated to that duty-hour trap. By 20 Sep their duty hours are nowhere near the 60h/7d limit (own history has rolled off) -- but they are still un-coverable, now for RULE-CERT-06. A system that memorised 'C-2087 -> RULE-DUTY-02' rather than actually running the rules will get this one wrong.",
+  "event": {
+   "type": "SICK_CREW",
+   "crew_id": "C-2143",
+   "pairing_id": "P-2214",
+   "narrative": "Captain C-2143 calls in sick for pairing P-2214 (VT-DXB, 2026-09-20). C-2087 is proposed as a candidate cover."
+  },
+  "answer_key": {
+   "uncovered_flights": [
+    "DX421-2026-09-20",
+    "DX422-2026-09-20",
+    "DX423-2026-09-20",
+    "DX424-2026-09-20"
+   ],
+   "options": [
+    {
+     "action": "Assign Captain C-3305 (reserve callout)",
+     "crew_id": "C-3305",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 18500,
+     "delay_hours": 0.0,
+     "rank": 1
+    },
+    {
+     "action": "Assign Captain C-1017 (day-off callout)",
+     "crew_id": "C-1017",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 2
+    },
+    {
+     "action": "Assign Captain C-1042 (day-off callout)",
+     "crew_id": "C-1042",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 3
+    },
+    {
+     "action": "Assign Captain C-1443 (day-off callout)",
+     "crew_id": "C-1443",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 4
+    },
+    {
+     "action": "Assign Captain C-1938 (day-off callout)",
+     "crew_id": "C-1938",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 5
+    },
+    {
+     "action": "Assign Captain C-3187 (day-off callout)",
+     "crew_id": "C-3187",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 6
+    },
+    {
+     "action": "Assign Captain C-3940 (day-off callout)",
+     "crew_id": "C-3940",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 7
+    },
+    {
+     "action": "Assign Captain C-3983 (day-off callout)",
+     "crew_id": "C-3983",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 8
+    },
+    {
+     "action": "Assign Captain C-5566 (day-off callout)",
+     "crew_id": "C-5566",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 9
+    },
+    {
+     "action": "Assign Captain C-5647 (day-off callout)",
+     "crew_id": "C-5647",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 10
+    },
+    {
+     "action": "Assign Captain C-2210 (reserve callout + deadhead from DEL (first departure delayed ~6.0h))",
+     "crew_id": "C-2210",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 57400,
+     "delay_hours": 6.0,
+     "rank": 11
+    },
+    {
+     "action": "Cancel all 4 flights of the pairing",
+     "crew_id": null,
+     "legal": true,
+     "rules_checked": [],
+     "cost_inr": 1000000,
+     "delay_hours": 0.0,
+     "rank": 12
+    }
+   ],
+   "excluded_candidates": [
+    {
+     "crew_id": "C-1526",
+     "reason": "RULE-REST-04: only 10.5h rest before COVER on 2026-09-20 (rest conflict); RULE-REST-04: only -9.25h rest before P-2295 on 2026-09-20 (downstream conflict); double-booked: COVER overlaps P-2295 on 2026-09-20"
+    },
+    {
+     "crew_id": "C-1600",
+     "reason": "RULE-QUAL-05: no A320 rating"
+    },
+    {
+     "crew_id": "C-1671",
+     "reason": "RULE-QUAL-05: no A320 rating"
+    },
+    {
+     "crew_id": "C-2087",
+     "reason": "RULE-CERT-06: certification invalid on 2026-09-20 (licence)"
+    },
+    {
+     "crew_id": "C-2091",
+     "reason": "RULE-QUAL-05: no A320 rating"
+    },
+    {
+     "crew_id": "C-2221",
+     "reason": "RULE-QUAL-05: no A320 rating"
+    },
+    {
+     "crew_id": "C-3231",
+     "reason": "RULE-QUAL-05: no A320 rating"
+    },
+    {
+     "crew_id": "C-3310",
+     "reason": "reserve on-call window 06:00-18:00Z does not cover required report 02:00Z"
+    },
+    {
+     "crew_id": "C-3315",
+     "reason": "reserve on-call window 03:00-15:00Z does not cover required report 02:00Z"
+    },
+    {
+     "crew_id": "C-3721",
+     "reason": "RULE-QUAL-05: no A320 rating"
+    },
+    {
+     "crew_id": "C-5392",
+     "reason": "RULE-QUAL-05: no A320 rating"
+    },
+    {
+     "crew_id": "C-5820",
+     "reason": "RULE-REST-04: only -10.75h rest before P-2221 on 2026-09-20 (downstream conflict); double-booked: COVER overlaps P-2221 on 2026-09-20"
+    },
+    {
+     "crew_id": "C-5837",
+     "reason": "RULE-REST-04: only -10.75h rest before COVER on 2026-09-20 (rest conflict); double-booked: P-2207 overlaps COVER on 2026-09-20"
+    }
+   ],
+   "expected_choice": {
+    "action": "Assign Captain C-3305 (reserve callout)",
+    "crew_id": "C-3305",
+    "legal": true,
+    "rules_checked": [
+     "RULE-FDP-01",
+     "RULE-DUTY-02",
+     "RULE-FLT-03",
+     "RULE-REST-04",
+     "RULE-QUAL-05",
+     "RULE-CERT-06",
+     "RULE-BASE-07"
+    ],
+    "cost_inr": 18500,
+    "delay_hours": 0.0,
+    "rank": 1
+   },
+   "c2087_probe": {
+    "crew_id": "C-2087",
+    "excluded": true,
+    "reason": "RULE-CERT-06: certification invalid on 2026-09-20 (licence)",
+    "rule": "RULE-CERT-06",
+    "contrast_with_S2": "S2 excludes the same crew member on RULE-DUTY-02 for P-2291 (15-16 Sep); here the blocking rule is RULE-CERT-06 (licence valid_to=2026-09-18), and their 7-day duty total by this date is only 4.33h -- nowhere near 60h."
+   }
+  }
+ },
+ {
+  "scenario_id": "G3",
+  "difficulty": "hard",
+  "title": "Two ATR captains sick the same day -- a shallow shared pool",
+  "generalization_note": "S6 solves a joint problem over the A320 captain pool (~19 candidates each side): there is always slack. The ATR fleet has only 7 rated captains total, so the SAME joint-solve logic must be re-verified on a pool where 2 of 7 are already sick, only one is a reserve, and the other 5 line captains are shared 1-for-1 across both openings. This checks the solver's no-double-assignment guarantee actually binds when the pool is thin, not just when it's deep.",
+  "event": {
+   "type": "MULTI_SICK",
+   "events": [
+    {
+     "crew_id": "C-3231",
+     "pairing_id": "P-2224"
+    },
+    {
+     "crew_id": "C-5392",
+     "pairing_id": "P-2231"
+    }
+   ],
+   "narrative": "On the morning of 2026-09-16, the captains of both VT-DXE (C-3231) and VT-DXF (C-5392) call in sick. Both are ATR72-only pairings; the candidate pool is the same 7 ATR-rated captains system-wide, minus the two who just went sick."
+  },
+  "answer_key": {
+   "options_dxe": [
+    {
+     "action": "Assign Captain C-3315 (reserve callout)",
+     "crew_id": "C-3315",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 18500,
+     "delay_hours": 0.0,
+     "rank": 1
+    },
+    {
+     "action": "Assign Captain C-1600 (day-off callout)",
+     "crew_id": "C-1600",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 2
+    },
+    {
+     "action": "Assign Captain C-1671 (day-off callout)",
+     "crew_id": "C-1671",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 3
+    },
+    {
+     "action": "Assign Captain C-2091 (day-off callout)",
+     "crew_id": "C-2091",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 4
+    },
+    {
+     "action": "Assign Captain C-2221 (day-off callout)",
+     "crew_id": "C-2221",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 5
+    },
+    {
+     "action": "Assign Captain C-3721 (day-off callout)",
+     "crew_id": "C-3721",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 6
+    },
+    {
+     "action": "Cancel all 4 flights of the pairing",
+     "crew_id": null,
+     "legal": true,
+     "rules_checked": [],
+     "cost_inr": 1000000,
+     "delay_hours": 0.0,
+     "rank": 7
+    }
+   ],
+   "excluded_dxe": [
+    {
+     "crew_id": "C-1017",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1042",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1443",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1526",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1938",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-2087",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-2143",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-2210",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3187",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3305",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3310",
+     "reason": "reserve on-call window 06:00-18:00Z does not cover required report 03:00Z"
+    },
+    {
+     "crew_id": "C-3940",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3983",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5392",
+     "reason": "RULE-REST-04: only -7.25h rest before P-2231 on 2026-09-16 (downstream conflict); double-booked: COVER overlaps P-2231 on 2026-09-16"
+    },
+    {
+     "crew_id": "C-5566",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5647",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5820",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5837",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    }
+   ],
+   "options_dxf": [
+    {
+     "action": "Assign Captain C-3315 (reserve callout)",
+     "crew_id": "C-3315",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 18500,
+     "delay_hours": 0.0,
+     "rank": 1
+    },
+    {
+     "action": "Assign Captain C-1600 (day-off callout)",
+     "crew_id": "C-1600",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 2
+    },
+    {
+     "action": "Assign Captain C-1671 (day-off callout)",
+     "crew_id": "C-1671",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 3
+    },
+    {
+     "action": "Assign Captain C-2091 (day-off callout)",
+     "crew_id": "C-2091",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 4
+    },
+    {
+     "action": "Assign Captain C-2221 (day-off callout)",
+     "crew_id": "C-2221",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 5
+    },
+    {
+     "action": "Assign Captain C-3721 (day-off callout)",
+     "crew_id": "C-3721",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 6
+    },
+    {
+     "action": "Cancel all 2 flights of the pairing",
+     "crew_id": null,
+     "legal": true,
+     "rules_checked": [],
+     "cost_inr": 500000,
+     "delay_hours": 0.0,
+     "rank": 7
+    }
+   ],
+   "excluded_dxf": [
+    {
+     "crew_id": "C-1017",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1042",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1443",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1526",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-1938",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-2087",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-2143",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-2210",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3187",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3231",
+     "reason": "RULE-REST-04: only -7.25h rest before COVER on 2026-09-16 (rest conflict); double-booked: P-2224 overlaps COVER on 2026-09-16"
+    },
+    {
+     "crew_id": "C-3305",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3310",
+     "reason": "reserve on-call window 06:00-18:00Z does not cover required report 04:00Z"
+    },
+    {
+     "crew_id": "C-3940",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-3983",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5566",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5647",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5820",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    },
+    {
+     "crew_id": "C-5837",
+     "reason": "RULE-QUAL-05: no ATR72 rating"
+    }
+   ],
+   "shared_pool_size": 6,
+   "optimal_joint_plan": {
+    "total_cost_inr": 42500,
+    "assign_dxe": {
+     "action": "Assign Captain C-3315 (reserve callout)",
+     "crew_id": "C-3315",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 18500,
+     "delay_hours": 0.0,
+     "rank": 1
+    },
+    "assign_dxf": {
+     "action": "Assign Captain C-1600 (day-off callout)",
+     "crew_id": "C-1600",
+     "legal": true,
+     "rules_checked": [
+      "RULE-FDP-01",
+      "RULE-DUTY-02",
+      "RULE-FLT-03",
+      "RULE-REST-04",
+      "RULE-QUAL-05",
+      "RULE-CERT-06",
+      "RULE-BASE-07"
+     ],
+     "cost_inr": 24000,
+     "delay_hours": 0.0,
+     "rank": 2
+    }
+   },
+   "note": "The single ATR reserve (C-3315) can only cover one of the two pairings; the other must be a day-off callout. Equal-cost mirror assignments (swapping which pairing the reserve covers) are equally correct."
+  }
+ }
+]

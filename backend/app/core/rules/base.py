@@ -30,6 +30,11 @@ class CoverContext:
     cover_days: tuple[PairingDay, ...]
     exclude_pairing: str | None = None
     delay_hours: float = 0.0
+    #: The rank the seat being covered requires, when the caller knows it (e.g.
+    #: the pairing's own incumbent, or a role named explicitly in the
+    #: question). ``None`` means "not specified" -- the seat/rank check is
+    #: skipped entirely, not assumed to pass silently.
+    required_role: str | None = None
 
     @cached_property
     def crew(self):

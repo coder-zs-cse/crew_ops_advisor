@@ -11,24 +11,34 @@ These are not our bugs. They are places where the dataset's own generator is int
 inconsistent, and we had to choose. In both cases we reproduce the answer-key behaviour and
 report the disagreement rather than silently picking a side.
 
-### 1.1 RULE-FLT-03 is declared but never enforced
+### 1.1 RULE-FLT-03 was declared but never enforced — fixed, now a hard gate
 
 `generate.py`'s `check_cover()` lists `RULE-FLT-03` in every option's `rules_checked`
-array, but the function never evaluates it. Two consequences:
+array, but the function never evaluates it, so no scenario or question in the shipped
+answer keys ever contains a FLT-03 breach.
 
-* Cover segments carry `flight_hours = 0.0`, so a simulated assignment adds no block hours
-  to the 28-day window at all.
-* If we enforced the 100h limit as a hard gate, we could exclude a candidate the shipped
-  answer keys list as legal.
+**What we used to do.** `app/core/rules/flt03.py` computed the real 28-day block total
+including the hours the candidate would actually fly, and reported it — but at `advisory`
+severity, so it never removed a candidate. A `STRICT` flag flipped it to a hard gate "for
+anyone who wants to see the difference."
 
-**What we do.** `app/core/rules/flt03.py` computes the real 28-day block total including
-the hours the candidate would actually fly, and reports it — but at `advisory` severity, so
-it never removes a candidate. A `STRICT` flag flips it to a hard gate for anyone who wants
-to see the difference.
+**Why that was the wrong call, not just a cautious one.** It produced a live inconsistency
+rather than a documented trade-off: `check_legality` / `enumerate_cover_candidates` would
+call a genuine >100h/28d candidate "legal" (advisory verdicts don't count as breaches),
+while `simulate_duty_window` — a separate, engine-free code path answering the same
+question — reported a breach for the identical arithmetic. Two tools, one fact, two
+verdicts. See the generalization suite's GQ16 for the reproduction.
 
-**Why this matters operationally.** A real carrier would treat a 100h breach as
-disqualifying. Our advisory verdict is the right call *against this dataset* and the wrong
-call against a real one. That switch is one boolean, and it is deliberately visible.
+**What we do now.** The advisory/strict toggle is gone. `RULE-FLT-03` is enforced exactly
+like the other six: a breach makes the candidate illegal, full stop. We re-ran the full
+answer-key suite (`tests/conformance/test_answer_keys.py` — all 6 scenarios, 38 questions,
+2 held-out scenarios) with this enforced and every case still passes: none of the shipped
+material comes anywhere near 100h/28d, so the risk the old comment warned about — "we could
+exclude a candidate the shipped answer keys call legal" — never actually materialised. It
+was a real risk worth naming when this was first built; it turned out not to be real, and
+the honest response to that is to remove the escape hatch, not leave it wired in "just in
+case." See `app/core/rules/flt03.py`'s module docstring and `tests/test_rules.py`'s
+`test_flight_hour_breach_is_a_hard_gate_not_advisory`.
 
 ### 1.2 The delay model uses two different report-time conventions
 
@@ -126,6 +136,92 @@ clarification — is the same class of error as 3.2 and we have not solved it ge
 
 Decisions are persisted (`decisions` table), but nothing reads them back. Multi-turn context
 covers the current conversation only.
+
+### 3.6 A name that isn't a crew_id silently became a different person — fixed
+
+> *"Is Captain Nair legal to cover pairing P-2201?"*
+
+`crew.json` has 7 different people named `*. Nair`. Entity resolution had no name-matching
+logic at all — only `\bC-?(\d{4})\b`. Because the question also named a pairing and a rank,
+`entities.py`'s "a pairing plus a role implies the crew member holding that role on it"
+fallback fired, discarded the word "Nair" entirely, and returned P-2201's actual captain
+(`C-5837, A. Sharma`) with no ambiguity or unresolved signal — a fluent, confident answer
+about a person the question never named. Worse than a lookup miss, because a miss is
+visible and this wasn't.
+
+**What we did.** `resolve()` now checks a surname index built from `world.crew` before
+falling back to that heuristic. A surname that narrows to exactly one crew member (by
+surname, or by surname plus a stated rank) still resolves normally. One that stays
+ambiguous is reported as such (`Entities.ambiguous`, `kind: "crew_name"`) instead of guessed.
+One that matches a real surname but not at the stated rank is `unresolved`, not substituted
+with someone of the wrong rank. See `tests/test_routing_and_honesty.py`'s
+`test_ambiguous_surname_is_flagged_not_silently_substituted` and its two neighbours.
+
+### 3.7 Direct legality checks skipped status and rank preconditions — fixed
+
+> *"Captain C-1042 is on leave — can they legally cover this pairing?"* → `legal: true`.
+> *"Can this First Officer legally hold the Captain's seat?"* → `legal: true`.
+
+`enumerate_cover_candidates` / `resolve_disruption` filter candidates to *active* crew of
+the *required rank* before anything reaches the seven-rule engine (`candidates.py`'s own
+module docstring names this as the first gate). `check_legality` and `simulate_assignment`
+— the tools for asking about one specific, named crew member — called the rule engine
+directly and never passed through that filter, so both questions above came back legal,
+because none of the seven numbered rules encodes "is on leave" or "holds the right rank."
+
+**What we did.** Both checks now live in the rule engine itself
+(`app/core/rules/precondition.py`), run first, short-circuiting exactly like RULE-QUAL-05
+already does — every entry point enforces them identically instead of relying on whichever
+caller happened to filter upstream. The rank check is opt-in (`required_role`, defaulting to
+`None`): every one of the 38 shipped questions calls `check_cover` without ever naming a
+seat, and stays bit-for-bit unchanged (`test_no_seat_named_keeps_every_prior_behaviour_
+unchanged`). `check_legality`'s new `role` parameter, and `entities.py`'s new `seat_role`
+(a second role named in the question that differs from the resolved crew member's own
+rank), wire this through for the natural-language case that names one rank as the
+candidate and a different rank as the seat.
+
+**What we did not fully solve.** That NL wiring depends on `entities.py` already knowing
+which named crew_id is *the candidate* when a question names two ("Captain C-1042 calls in
+sick — can First Officer C-1694 cover the Captain's seat?"). Right now the first crew_id
+mentioned always becomes `e.crew_id`, regardless of which one the sentence is actually
+asking about — a real, separate gap in subject disambiguation, not the rank check itself.
+The single-crew-id phrasing ("Can First Officer C-1694 legally cover the Captain's seat on
+P-2291?") already works correctly end-to-end; the two-crew-id phrasing does not yet.
+
+### 3.8 The policy-question guard is tuned to specific phrasings — partially addressed
+
+> *"C-3940 is showing a 0.71 disruption-risk score for tomorrow's pairing — is keeping them
+> on it a good idea?"*
+
+`POLICY_RE` caught the three canned examples in `test_routing_and_honesty.py` because it was
+built from their literal trigger words. This same-meaning paraphrase, with none of them, did
+not set `policy_question`, and routed to a plain risk lookup instead of declining.
+
+**What we did.** Widened the pattern to also catch generic evaluative-judgement language
+("good/bad/wise idea," "makes sense to," "is it advisable") rather than adding one more
+literal phrase. The full answer-key suite still passes with the wider net — no graded
+question was caught by it. This phrasing is now correctly declined.
+
+**What we did not do.** This is still a pattern match, not a semantic classifier. A further
+paraphrase using none of the now-wider trigger words could slip through exactly the same
+way this one did. The architecturally complete fix is routing evaluative-judgement
+detection through the LLM-classifier fallback this codebase's own `plans.py` docstring
+already describes as existing for "genuinely novel questions," rather than growing
+`POLICY_RE` phrase by phrase indefinitely — not implemented here.
+
+### 3.9 A closure on a station the network doesn't serve looked identical to one with nothing in the window — fixed
+
+> *"PNQ is closed 08:00–14:00Z on 17 Sep — what's the crew impact?"*
+
+`station_closure()` never checked its `station` argument against the network at all; it just
+scanned `flights.json` for matches. A made-up station code and a real, served station that
+simply has nothing happening in the window both produced `affected_flights: []` —
+indistinguishable in shape, even though one is a true "nothing to report" and the other is
+"this system has no data for that station at all."
+
+**What we did.** `simulate_station_closure` now checks the station against `world.stations`
+first and returns `found: false` with the actual station list, rather than silently
+computing an empty-but-plausible-looking answer.
 
 ---
 

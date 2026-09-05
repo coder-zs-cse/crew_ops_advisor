@@ -128,17 +128,17 @@ export interface ScheduleDay {
   flight_hours: number | null
   report_utc: string | null
   release_utc: string | null
-  conflicts: { rule: string; message: string }[]
+  conflicts?: { rule: string; message: string }[]
 }
 
 export interface ScheduleWindow {
-  crew_id: string
-  window_start: string
-  window_end: string
-  cover_pairing_id: string | null
-  conflict_count: number
-  safe_to_assign: boolean
-  days: ScheduleDay[]
+  crew_id?: string
+  window_start?: string
+  window_end?: string
+  cover_pairing_id?: string | null
+  conflict_count?: number
+  safe_to_assign?: boolean
+  days?: ScheduleDay[]
 }
 
 export interface CoverOption {

@@ -347,7 +347,10 @@ def compute_duty_period(
 @tool(
     "check_legality",
     "Run all seven rules against a proposed assignment: can this crew member legally "
-    "cover this pairing? Returns a verdict per rule with the arithmetic shown.",
+    "cover this pairing? Returns a verdict per rule with the arithmetic shown. Pass "
+    "`role` when the question names which seat is being covered (e.g. a First Officer "
+    "proposed for the Captain's seat) -- without it, a crew member is only ever checked "
+    "against the seven arithmetic rules, not against whether their rank fits the seat.",
     tier=2,
     category="legality",
     citations=(
@@ -365,6 +368,7 @@ def compute_duty_period(
         "day_indexes": {"type": "array", "items": INT},
         "delay_hours": NUM,
         "replace_existing": BOOL,
+        "role": STR,
     },
     required=["crew_id", "pairing_id"],
 )
@@ -376,6 +380,7 @@ def check_legality(
     day_indexes: list[int] | None = None,
     delay_hours: float = 0.0,
     replace_existing: bool = True,
+    role: str | None = None,
 ) -> dict:
     if world.get_crew(crew_id) is None:
         return _missing("crew member", crew_id)
@@ -394,6 +399,7 @@ def check_legality(
         days,
         exclude_pairing=pairing_id if replace_existing else None,
         delay_hours=delay_hours,
+        required_role=role,
     )
     payload = report.as_dict()
     payload.update(
@@ -530,6 +536,18 @@ def simulate_crew_unavailable(
     required=["station", "start_utc", "end_utc"],
 )
 def simulate_station_closure(world: World, *, station: str, start_utc: Any, end_utc: Any) -> dict:
+    # A station this network doesn't serve at all produces the same
+    # affected_flights=[] as one that's served but happens to have nothing in
+    # the window -- station_closure() itself doesn't distinguish them (it just
+    # scans flights.json for matches, which is legitimately empty either way).
+    # That silent identical-looking-but-different-facts answer is exactly the
+    # "invented facts are treated as failures" case: check membership first.
+    if station not in world.stations:
+        return {
+            "found": False,
+            "error": f"{station!r} is not a station this network serves",
+            "hint": f"known stations: {', '.join(sorted(world.stations))}",
+        }
     # Go through the scenario layer, not the bare impact function: it adds the
     # per-pairing recovery plan, which is what makes this a Tier-3 answer
     # rather than a list of delayed flights.

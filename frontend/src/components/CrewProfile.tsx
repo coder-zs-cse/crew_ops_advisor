@@ -12,9 +12,13 @@ const DAY_STATUS_CLASS: Record<string, string> = {
 }
 
 function CrewScheduleWindow({ w }: { w: ScheduleWindow }) {
+  const days = w.days ?? []
+  if (days.length === 0) {
+    return <p className="text-2xs text-mute-400">No published days in this window.</p>
+  }
   return (
     <div className="flex gap-1 flex-wrap">
-      {w.days.map((d) => (
+      {days.map((d) => (
         <div
           key={d.date}
           className={clsx(
@@ -25,7 +29,7 @@ function CrewScheduleWindow({ w }: { w: ScheduleWindow }) {
           <div className="font-mono">{d.date.slice(2)}</div>
           <div className="text-mute-400 truncate">{d.pairing_id ?? 'off'}</div>
           {d.duty_hours != null && <div className="text-mute-500">{d.duty_hours}h</div>}
-          {d.conflicts.map((c, i) => (
+          {(d.conflicts ?? []).map((c, i) => (
             <div key={i} className="text-2xs text-breach truncate" title={c.message}>{c.rule}</div>
           ))}
         </div>

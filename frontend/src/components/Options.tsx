@@ -26,7 +26,7 @@ function ScheduleStrip({ window: w }: { window: ScheduleWindow }) {
         {w.safe_to_assign && <span className="chip-legal text-2xs">safe</span>}
       </div>
       <div className="flex gap-1 flex-wrap">
-        {w.days.map((d, i) => (
+        {(w.days ?? []).map((d, i) => (
           <div
             key={d.date}
             className={clsx(
@@ -39,9 +39,9 @@ function ScheduleStrip({ window: w }: { window: ScheduleWindow }) {
             <div className="font-mono">{d.date.slice(2)}</div>
             <div className="text-mute-400 truncate">{d.pairing_id ?? 'off'}</div>
             {d.duty_hours != null && <div className="text-mute-500">{d.duty_hours}h</div>}
-            {hovered === i && d.conflicts.length > 0 && (
+            {hovered === i && (d.conflicts ?? []).length > 0 && (
               <div className="absolute bottom-full left-0 mb-1 z-20 w-56 rounded-lg border border-breach/40 bg-ink-900 p-2 shadow-lg text-left">
-                {d.conflicts.map((c, j) => (
+                {(d.conflicts ?? []).map((c, j) => (
                   <div key={j} className="text-2xs">
                     <span className="text-breach font-semibold">{c.rule}</span>
                     <span className="text-mute-300 ml-1">{c.message}</span>
@@ -49,7 +49,7 @@ function ScheduleStrip({ window: w }: { window: ScheduleWindow }) {
                 ))}
               </div>
             )}
-            {hovered === i && d.conflicts.length === 0 && d.report_utc && (
+            {hovered === i && !(d.conflicts ?? []).length && d.report_utc && (
               <div className="absolute bottom-full left-0 mb-1 z-20 w-40 rounded-lg border border-ink-700 bg-ink-900 p-2 shadow-lg text-left">
                 <div className="text-2xs text-mute-400">
                   {utcTime(d.report_utc)} – {utcTime(d.release_utc)}

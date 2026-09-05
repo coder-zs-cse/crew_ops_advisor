@@ -52,6 +52,7 @@ class MinimumRestRule:
                     actual=rest,
                     limit=min_rest_hours,
                     margin=round(rest - min_rest_hours, 2),
+                    conflict_kind=tag,
                     arithmetic=(
                         ArithmeticStep(
                             "Previous release",
@@ -90,11 +91,24 @@ class NoOverlapRule:
                         subject_date=nxt.date,
                         actual=hrs(prev.release_utc - nxt.report_utc),
                         limit=0.0,
+                        conflict_kind="overlap",
+                        # Same two-timestamp shape as MinimumRestRule's arithmetic, on
+                        # purpose: the UI renders both with one generic "gap between two
+                        # duties" timeline, keyed off these labels rather than rule_id.
                         arithmetic=(
                             ArithmeticStep(
+                                "Previous release",
+                                f"{prev.label} on {prev.date}",
+                                prev.release_utc.strftime("%Y-%m-%dT%H:%MZ"),
+                            ),
+                            ArithmeticStep(
+                                "Next report",
+                                f"{nxt.label} on {nxt.date}",
+                                nxt.report_utc.strftime("%Y-%m-%dT%H:%MZ"),
+                            ),
+                            ArithmeticStep(
                                 "Overlap",
-                                f"{prev.label} releases {prev.release_utc:%H:%M}Z, "
-                                f"{nxt.label} reports {nxt.report_utc:%H:%M}Z",
+                                "release - report",
                                 hrs(prev.release_utc - nxt.report_utc),
                                 "h",
                             ),

@@ -197,6 +197,11 @@ class RuleVerdict:
     limit: float | None = None
     margin: float | None = None  # positive = headroom, negative = over
     arithmetic: tuple[ArithmeticStep, ...] = ()
+    #: Sub-classification for a "gap between two duties" verdict (REST-04's own
+    #: "rest" vs "downstream" distinction, or "overlap" for CONSTRAINT-OVERLAP).
+    #: A structured field so the UI can pick a visual and a label without
+    #: pattern-matching the message string. None for rules with no such shape.
+    conflict_kind: str | None = None
 
     @property
     def passed(self) -> bool:
@@ -217,6 +222,7 @@ class RuleVerdict:
             "limit": self.limit,
             "margin": self.margin,
             "arithmetic": [step.as_dict() for step in self.arithmetic],
+            "conflict_kind": self.conflict_kind,
         }
 
 

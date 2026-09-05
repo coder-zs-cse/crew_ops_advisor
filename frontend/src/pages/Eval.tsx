@@ -103,6 +103,12 @@ export default function EvalPage() {
                   { value: 'questions', label: 'Questions' },
                   { value: 'scenarios', label: 'Scenarios' },
                   { value: 'holdout', label: 'Held out' },
+                  {
+                    value: 'generalization',
+                    label: 'Generalization',
+                    title:
+                      '17 questions + 3 scenarios probing edges the shipped 38+6 don\'t reach: unknown entities, out-of-window dates, exact rule boundaries, a shallow candidate pool, and honesty probes graded on the router\'s own signals rather than one correct value',
+                  },
                 ]}
               />
             )}

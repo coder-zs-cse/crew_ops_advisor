@@ -11,6 +11,7 @@ from .duty02 import MAX_DUTY_HOURS, SevenDayDutyRule
 from .engine import ALL_RULE_IDS, ENGINE, RuleEngine, check_cover
 from .fdp01 import FlightDutyPeriodRule, check_fdp
 from .flt03 import MAX_FLIGHT_HOURS, TwentyEightDayFlightRule
+from .precondition import AvailabilityRule, SeatRankRule
 from .qual05 import AircraftRatingRule
 from .rest04 import MIN_REST_HOURS, MinimumRestRule, NoOverlapRule, rest_between
 
@@ -21,6 +22,7 @@ __all__ = [
     "MAX_FLIGHT_HOURS",
     "MIN_REST_HOURS",
     "AircraftRatingRule",
+    "AvailabilityRule",
     "BaseAndPositioningRule",
     "CertificationRule",
     "CoverContext",
@@ -28,6 +30,7 @@ __all__ = [
     "MinimumRestRule",
     "NoOverlapRule",
     "RuleEngine",
+    "SeatRankRule",
     "SevenDayDutyRule",
     "TwentyEightDayFlightRule",
     "certs_valid_on",

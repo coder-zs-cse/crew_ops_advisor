@@ -307,12 +307,18 @@ def enumerate_cover(
                 continue
 
         # --- Gate 3: the seven-rule engine ------------------------------
+        # required_role=role is redundant here -- the filter at the top of
+        # this loop already guarantees crew.rank == role -- but it's cheap and
+        # keeps this call site consistent with check_legality's, so a future
+        # change to the filter above can't silently reopen the rank gap that
+        # check_legality had (see rules/precondition.py).
         ctx = CoverContext(
             world=world,
             crew_id=cid,
             cover_days=days,
             exclude_pairing=exclude_pairing,
             delay_hours=delay_hours,
+            required_role=role,
         )
         report = engine.evaluate_cover(ctx)
         if not report.legal:

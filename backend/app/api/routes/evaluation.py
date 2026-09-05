@@ -28,18 +28,19 @@ from sqlalchemy.orm import Session
 from ...config import get_settings
 from ...db.models import EvalRun
 from ...db.session import get_db
-from ...evalsuite import live_suite, question_suite, scenario_suite
+from ...evalsuite import generalization_suite, live_suite, question_suite, scenario_suite
 from ..deps import get_advisor
 
 router = APIRouter(prefix="/api/eval", tags=["eval"])
 
-SUITES = ("questions", "scenarios", "holdout", "all", "live")
+SUITES = ("questions", "scenarios", "holdout", "generalization", "all", "live")
 
 SUITE_DESCRIPTIONS = {
     "questions": "Calls app.core directly against the 38 shipped questions. No agent, no model, no network -- proof the deterministic engine's math matches the answer keys. Fast and identical on every run by construction.",
     "scenarios": "Calls app.core directly against the 6 worked scenarios (S1-S6). Same guarantee as 'questions', at the scenario level.",
     "holdout": "The 2 held-out scenarios (H1-H2), used once to check generalisation, not to build the logic.",
-    "all": "The three suites above, combined. This is the deterministic-engine scorecard -- it never touches the model.",
+    "generalization": "17 questions + 3 scenarios written to probe edges the original 38+6 don't reach -- unknown/malformed entities, out-of-window dates, exact rule boundaries, a shallow candidate pool, and honesty probes (policy judgements, compound questions, an ambiguous name). Same 'no agent, no model' guarantee as 'questions'; graded at the router/entity-resolution level for the honesty probes rather than diffed against one correct value.",
+    "all": "The three original suites, combined. This is the deterministic-engine scorecard -- it never touches the model.",
     "live": "Sends each question's own English through the real agent -- the exact path /api/chat uses, model included. Takes real wall-clock time and can genuinely fail on routing or verification. Requires a configured API key.",
 }
 
@@ -50,6 +51,8 @@ def _engine_run(suite: str) -> dict:
         return question_suite.run_suite(data_dir)
     if suite in ("scenarios", "holdout"):
         return scenario_suite.run_suite(data_dir, suite=suite)
+    if suite == "generalization":
+        return generalization_suite.run_suite(data_dir)
     if suite == "all":
         questions = question_suite.run_suite(data_dir)
         scenarios = scenario_suite.run_suite(data_dir, suite="scenarios")
