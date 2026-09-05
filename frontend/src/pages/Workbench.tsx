@@ -27,7 +27,9 @@ const KINDS: { value: EventKind; label: string; hint: string }[] = [
  * disruptions" means, and the lineage strip shows the chain.
  */
 export default function WorkbenchPage() {
-  const location = useLocation() as { state?: { pairingId?: string; crewId?: string } }
+  const location = useLocation() as {
+    state?: { pairingId?: string; crewId?: string; flightId?: string; aircraft?: string; date?: string }
+  }
   const incoming = location.state
   const [kind, setKind] = useState<EventKind>('sick')
   const [form, setForm] = useState<Record<string, string>>({
@@ -37,10 +39,10 @@ export default function WorkbenchPage() {
     station: 'BLR',
     start_utc: '2026-09-17T08:00:00Z',
     end_utc: '2026-09-17T14:00:00Z',
-    aircraft: 'VT-DXA',
-    date: '2026-09-16',
+    aircraft: incoming?.aircraft ?? 'VT-DXA',
+    date: incoming?.date ?? '2026-09-16',
     delay_hours: '1.5',
-    flight_ids: 'DX404-2026-09-16',
+    flight_ids: incoming?.flightId ?? 'DX404-2026-09-16',
     crew_id_2: 'C-1938',
     pairing_id_2: 'P-2212',
   })
@@ -51,16 +53,18 @@ export default function WorkbenchPage() {
   const scenarios = useQuery({ queryKey: ['scenarios'], queryFn: () => api.scenarios(true) })
 
   useEffect(() => {
-    const pairingId = location.state?.pairingId
-    const crewId = location.state?.crewId
-    if (!pairingId && !crewId) return
+    const { pairingId, crewId, flightId, aircraft, date } = location.state ?? {}
+    if (!pairingId && !crewId && !flightId) return
     setKind('sick')
     setForm((f) => ({
       ...f,
       ...(crewId ? { crew_id: crewId } : {}),
       ...(pairingId ? { pairing_id: pairingId } : {}),
+      ...(flightId ? { flight_ids: flightId } : {}),
+      ...(aircraft ? { aircraft } : {}),
+      ...(date ? { date } : {}),
     }))
-  }, [location.state?.pairingId, location.state?.crewId])
+  }, [location.state?.pairingId, location.state?.crewId, location.state?.flightId, location.state?.aircraft, location.state?.date])
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))

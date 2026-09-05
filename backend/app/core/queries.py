@@ -250,6 +250,7 @@ def reserves(
 
 
 def _flight_row(world: World, f) -> dict:
+    found = world.pairing_of_flight(f.flight_id)
     return {
         "flight_id": f.flight_id,
         "flight_no": f.flight_no,
@@ -262,6 +263,7 @@ def _flight_row(world: World, f) -> dict:
         "aircraft": f.aircraft,
         "aircraft_type": f.aircraft_type,
         "seats": f.seats,
+        "pairing_id": found[0].pairing_id if found else None,
     }
 
 

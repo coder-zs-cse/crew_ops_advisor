@@ -350,7 +350,8 @@ export const api = {
   pairing: (id: string) => get<any>(`/api/pairings/${id}`),
   pairings: (params: { on?: string; aircraft?: string; crew_id?: string } = {}) =>
     get<any>(`/api/pairings${qs(params)}`),
-  flights: (params: Record<string, string | undefined>) => get<any>(`/api/flights${qs(params)}`),
+  flights: (params: Record<string, string | undefined> = {}) => get<any>(`/api/flights${qs(params)}`),
+  flight: (id: string) => get<any>(`/api/flights/${encodeURIComponent(id)}`),
   reserves: (params: { on?: string; base?: string; rank?: string; report_utc?: string } = {}) =>
     get<any>(`/api/reserves${qs(params)}`),
   certsExpiring: (withinDays = 30, asOf?: string) =>

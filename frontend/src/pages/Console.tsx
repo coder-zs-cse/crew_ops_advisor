@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Check, RefreshCw, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TailGantt } from '../components/Gantt'
+import { FlightBoard } from '../components/FlightBoard'
 import { EmptyState, ErrorBox, Panel, Skeleton, StatTile, Toggle } from '../components/ui'
 import { CoverageRing } from '../components/viz'
 import { api, type Alert } from '../lib/api'
@@ -20,7 +20,6 @@ export default function ConsolePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [severity, setSeverity] = useState<string>('all')
-  const [selectedPairing, setSelectedPairing] = useState<string | null>(null)
 
   const alerts = useQuery({ queryKey: ['alerts'], queryFn: () => api.alerts('open') })
   const snapshot = useQuery({ queryKey: ['snapshot'], queryFn: api.snapshot })
@@ -59,16 +58,6 @@ export default function ConsolePage() {
     const crewed = dayPairings.filter((p) => p.crew.length >= 6).length
     return { pct: (crewed / dayPairings.length) * 100, total: dayPairings.length }
   }, [gantt.data, clock.data])
-
-  const breachPairings = useMemo(
-    () =>
-      new Set(
-        (alerts.data?.alerts ?? [])
-          .filter((a) => a.severity === 'critical' && a.payload?.pairing_id)
-          .map((a) => String(a.payload.pairing_id)),
-      ),
-    [alerts.data],
-  )
 
   return (
     <div className="p-4 grid gap-4 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)_minmax(0,260px)]">
@@ -148,23 +137,11 @@ export default function ConsolePage() {
         </div>
 
         <Panel
-          title="Aircraft lines"
-          subtitle="Report to release, per tail, per day. Click a duty to open its pairing."
+          title="Flights"
+          subtitle="Published schedule. Open a row for the complement; click a crew member to start a disruption."
           bodyClassName="p-3"
         >
-          {gantt.isLoading && <Skeleton rows={6} />}
-          {gantt.data && (
-            <TailGantt
-              rows={gantt.data.rows}
-              dates={gantt.data.dates}
-              breachPairings={breachPairings}
-              selectedPairing={selectedPairing}
-              onSelectPairing={(id, crew) => {
-                setSelectedPairing(id)
-                navigate('/workbench', { state: { pairingId: id, crewId: preferredCrewId(crew) } })
-              }}
-            />
-          )}
+          <FlightBoard />
         </Panel>
       </div>
 
@@ -211,16 +188,6 @@ export default function ConsolePage() {
       </div>
     </div>
   )
-}
-
-const CREW_PREF = ['Captain', 'First Officer', 'Senior Cabin Crew']
-
-function preferredCrewId(crew: { crew_id: string; role: string }[]): string | undefined {
-  for (const role of CREW_PREF) {
-    const match = crew.find((c) => c.role === role)
-    if (match) return match.crew_id
-  }
-  return crew[0]?.crew_id
 }
 
 function AlertCard({

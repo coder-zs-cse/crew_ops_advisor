@@ -1,7 +1,83 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { api, utcTime } from '../lib/api'
-import { ErrorBox, Panel, Skeleton } from './ui'
+import { Link, useNavigate } from 'react-router-dom'
+import { api, utcStamp, utcTime } from '../lib/api'
+import { ErrorBox, Panel, Skeleton, StatTile } from './ui'
+
+/** One published leg: times, tail, pairing, and the complement that operates it. */
+export function FlightProfileBody({ flightId }: { flightId: string }) {
+  const navigate = useNavigate()
+  const detail = useQuery({ queryKey: ['flight', flightId], queryFn: () => api.flight(flightId) })
+
+  if (detail.isLoading) return <Skeleton rows={6} />
+  if (detail.error) return <ErrorBox error={detail.error} />
+  const f = detail.data
+  if (!f) return null
+
+  const openWorkbench = (crewId?: string) => {
+    navigate('/workbench', {
+      state: {
+        crewId,
+        pairingId: f.pairing_id,
+        flightId: f.flight_id,
+        aircraft: f.aircraft,
+        date: f.date,
+      },
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="chip-neutral">{f.date}</span>
+        <span className="chip-signal">
+          {f.dep_station}–{f.arr_station}
+        </span>
+        <span className="chip-neutral">{f.aircraft}</span>
+        <span className="chip-neutral">{f.aircraft_type}</span>
+        {f.pairing_id && <span className="chip-neutral">{f.pairing_id}</span>}
+      </div>
+
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+        <StatTile label="Departs" value={utcTime(f.dep_utc)} hint={utcStamp(f.dep_utc)} />
+        <StatTile label="Arrives" value={utcTime(f.arr_utc)} hint={utcStamp(f.arr_utc)} />
+        <StatTile label="Block" value={f.block_hours} unit="h" />
+        <StatTile label="Seats" value={f.seats} />
+      </div>
+
+      {(f.report_utc || f.release_utc) && (
+        <p className="text-2xs text-mute-400">
+          Duty window {utcStamp(f.report_utc)} → {utcStamp(f.release_utc)}
+          {f.sectors_in_duty != null ? ` · ${f.sectors_in_duty} sectors this day` : ''}
+        </p>
+      )}
+
+      <Panel
+        title="Assigned crew"
+        subtitle="Click a crew member to open a sick-call simulation for this pairing"
+        bodyClassName="p-3"
+      >
+        {(f.crew ?? []).length === 0 ? (
+          <p className="text-2xs text-mute-400">No complement is attached to this leg.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {f.crew.map((c: { crew_id: string; role: string; name?: string }) => (
+              <button
+                key={c.crew_id}
+                type="button"
+                title={`Simulate a disruption for ${c.name ?? c.crew_id}`}
+                onClick={() => openWorkbench(c.crew_id)}
+                className="chip-neutral hover:text-signal hover:border-signal/40 transition-colors"
+              >
+                {c.role} · {c.crew_id}
+                {c.name ? ` · ${c.name}` : ''}
+              </button>
+            ))}
+          </div>
+        )}
+      </Panel>
+    </div>
+  )
+}
 
 /** A pairing's full shape: days, legs, complement — the same read the Gantt links to. */
 export function PairingProfileBody({ pairingId }: { pairingId: string }) {
